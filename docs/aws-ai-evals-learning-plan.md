@@ -1,13 +1,33 @@
 # AWS AI Evals: 12-Week Hands-On Learning Plan
 
-This is a learning-by-doing path for building an AWS-native and hybrid AI evaluation harness. The goal is not to click around the Bedrock console and declare victory. The goal is to build a small but serious reference architecture: security and access preflight, datasets, schemas, validators, managed Bedrock eval jobs, AgentCore agent/tool evals, Inspect AI custom evals, orchestration, observability, quota-based cost controls, and public-safe reports.
+This is a learning-by-doing path for building an AWS-native and hybrid AI evaluation harness around a real production experiment: a public **ryanprasad.ai candidate agent**. The goal is not to click around the Bedrock console and declare victory. The goal is to build a small but serious reference architecture: security and access preflight, datasets, schemas, validators, managed Bedrock eval jobs, AgentCore agent/tool evals, Inspect AI custom evals, orchestration, observability, quota-based cost controls, and public-safe reports.
 
 Bedrock Evaluations and AgentCore Evaluations give you managed scoring, comparison, and reporting workflows. The harness you build around them handles preflight, validation, versioning, CI/CD glue, unsupported scorers, normalized exports, and public-safe evidence beyond the managed outputs.
+
+## Production Experiment: ryanprasad.ai Candidate Agent
+
+The live specimen is a public chatbot exposed on `ryanprasad.ai`. It should:
+
+- answer questions about Ryan's public GitHub projects from public/project-safe sources, with citations;
+- help visitors book a 30-minute call through Google Calendar after explicit confirmation;
+- relay a visitor-provided message to Ryan in Slack, with spam/rate limits and clear metadata;
+- refuse or escalate unsupported, private, unsafe, or ambiguous requests.
+
+RAG stays first: project Q&A is the main user value and the easiest place to build citation-backed evidence. Calendar booking and Slack relay are server-side tool-use flows that the harness evaluates for safety, consent, correct tool selection, valid arguments, rate limiting, and refusal/escalation behavior.
+
+Product boundaries:
+
+- No private memory, Honcho, Graphiti, local notes, private transcripts, or private repo content may appear in public answers unless explicitly curated into public-safe docs.
+- Server-side tools only; no tokens, calendar IDs, Slack destinations, or AWS details in browser code.
+- Calendar writes require explicit visitor confirmation and only create 30-minute call events within allowed scheduling rules.
+- Slack relay must preserve visitor-provided content boundaries and include spam/rate-limit checks, metadata, and abuse handling.
+- GitHub/project Q&A must cite public sources and say "I don't know" when support is missing.
 
 ## North Star
 
 By the end of 12 weeks, you should have a deployable **AWS Eval Harness Reference Architecture** that can:
 
+- evaluate the `ryanprasad.ai` candidate agent across public project Q&A, booking, Slack relay, refusal, and abuse-handling flows;
 - evaluate model outputs with Amazon Bedrock Evaluations;
 - evaluate RAG retrieval and retrieve-and-generate pipelines;
 - evaluate agent/tool behavior with Amazon Bedrock AgentCore Evaluations;
@@ -29,9 +49,13 @@ Use placeholders and synthetic data throughout:
 - AWS account: `<AWS_ACCOUNT_ID>`
 - Region: `us-east-1`
 - Example bucket: `s3://example-eval-bucket/...`
-- Example domain: `example.com`
+- Public experiment domain: `ryanprasad.ai`
+- Example non-product domain: `example.com`
+- Contact address placeholder: `<CONTACT_EMAIL>`
+- Google Calendar placeholder: `<CALENDAR_ID>`
+- Slack destination placeholder: `<SLACK_DESTINATION>`
 
-Do not commit live AWS account IDs, ARNs, bucket names, CloudWatch log output, private traces, local paths, private IPs, Slack IDs, emails, or secrets.
+Do not commit live AWS account IDs, ARNs, bucket names, CloudWatch log output, private traces, local paths, private IPs, Slack IDs, emails, calendar IDs, private hostnames, raw production traces, or secrets.
 
 **Synthetic is not the same as safe.** The safety, refusal, and prompt-injection lanes (Weeks 5 and 8) generate *attacks* by design. In a public, billboard-safe repo, keep that content non-operational: name the attack class and use inert canaries (e.g. `INJECTION_CANARY_DO_NOT_FOLLOW`), never working jailbreaks, exploit code, or copy-pasteable harmful instructions. The rules above keep *real* data out; this one keeps *dangerous* content out. An eval repo must not double as an attack cookbook.
 
@@ -45,8 +69,8 @@ Do not commit live AWS account IDs, ARNs, bucket names, CloudWatch log output, p
 Treat these as separate lanes that converge in the capstone:
 
 1. **Model evaluation lane** — Bedrock model evaluation jobs, model-as-judge, built-in metrics, custom metrics, BYOI model responses.
-2. **RAG evaluation lane** — Bedrock Knowledge Base retrieval-only and retrieve-and-generate evaluation, native comparison/reporting for supported RAG sources/configurations, plus custom RAG BYOI datasets where you supply supported response data.
-3. **Agent/tool evaluation lane** — Bedrock AgentCore Evaluations integrated into the main pipeline through OpenTelemetry/OpenInference-compatible traces, Strands/LangGraph-compatible instrumentation, and the online/on-demand/batch/dataset evaluation modes the AgentCore docs currently describe.
+2. **RAG evaluation lane** — Bedrock Knowledge Base retrieval-only and retrieve-and-generate evaluation for Ryan's public/project-safe GitHub corpus, native comparison/reporting for supported RAG sources/configurations, plus custom RAG BYOI datasets where you supply supported response data.
+3. **Agent/tool evaluation lane** — Bedrock AgentCore Evaluations for the candidate agent's Calendar and Slack tool flows, integrated into the main pipeline through OpenTelemetry/OpenInference-compatible traces, Strands/LangGraph-compatible instrumentation, and the online/on-demand/batch/dataset evaluation modes the AgentCore docs currently describe.
 4. **Custom harness lane** — Inspect AI, deterministic scorers, schema validators, custom task runners, SageMaker/ECS/Batch execution.
 5. **Platform lane** — S3, KMS, IAM, Step Functions, small Lambda glue, CloudWatch, CloudTrail, Athena/Glue, Service Quotas, Cost Explorer/Budgets, CI/CD.
 
@@ -83,7 +107,10 @@ aws-ai-evals/
   datasets/
     synthetic/
       model-prompts.jsonl
-      rag-conversations.jsonl
+      project-qa-rag.jsonl
+      calendar-booking-intents.jsonl
+      slack-relay-intents.jsonl
+      unsupported-private-info.jsonl
       human-labels.jsonl
   src/
     adapters/
@@ -110,15 +137,15 @@ This plan starts documentation-first, then turns it into code and deployable inf
 
 ---
 
-## Week 1 — Evaluability Design, Security Envelope, and Repo Contracts
+## Week 1 — Candidate Agent Design, Security Envelope, and Repo Contracts
 
 ### Objective
 
-Define what “evaluatable” means for your target AI application and establish the AWS security/access envelope before creating datasets.
+Define the public `ryanprasad.ai` candidate agent as the specimen: visitor intents, safety boundaries, success criteria, threat model, consent rules, secrets/IAM, and public/private data boundaries.
 
 ### Why it matters
 
-Most eval systems fail because the app was never instrumented for evaluation, or because IAM, KMS, model access, Region, quota, and retention decisions get bolted on after sensitive artifacts already exist. If prompts, retrieved context, tool calls, errors, run parameters, and security boundaries are not captured consistently, you get vibes in a trench coat instead of evidence.
+Most eval systems fail because the app was never instrumented for evaluation, or because IAM, KMS, model access, Region, quota, and retention decisions get bolted on after sensitive artifacts already exist. For a public chatbot, the trap is sharper: tool calls can create calendar events, relay messages, or leak context. Capture prompts, retrieved context, tool calls, confirmations, refusals, errors, run parameters, and security boundaries consistently or you get vibes in a trench coat instead of evidence.
 
 ### AWS services/docs to study
 
@@ -127,34 +154,45 @@ Most eval systems fail because the app was never instrumented for evaluation, or
 - Bedrock model/RAG evaluation IAM service role and KMS requirements
 - Bedrock and AgentCore data protection/encryption docs
 - Bedrock model invocation logging
-- CloudWatch Logs, S3, CloudTrail, KMS, IAM basics
+- CloudWatch Logs, S3, CloudTrail, KMS, IAM, Secrets Manager, and WAF basics
 
 ### Build tasks
 
-1. Write `docs/evaluability-design-doc.md` with:
-   - target app type: model-only, RAG, agent, or hybrid;
-   - success criteria;
+1. Write `docs/evaluability-design-doc.md` with the candidate-agent contract:
+   - visitor intents: public project Q&A, 30-minute call booking, Slack message relay, unsupported/private-info questions, abuse/spam;
+   - success criteria by intent;
    - expected failure modes;
-   - trace schema draft;
+   - threat model for prompt injection, spam, tool misuse, data leakage, overbooking, and unsupported claims;
+   - consent rules for calendar writes and Slack relay;
+   - public/private data boundary, including "public GitHub/project-safe sources only" for answers;
+   - rule that no Honcho, Graphiti, private memory, private notes, transcripts, or private repos feed public answers unless explicitly curated into public-safe docs;
+   - trace schema draft for chat turns, RAG citations, tool proposals, confirmations, tool attempts, refusals, latency, token/cost usage, and error fields;
    - privacy/safety policy;
    - region pinning and data residency policy;
    - dataset classification and sanitization policy;
    - retention policy for S3, CloudWatch Logs, and local artifacts;
    - cross-region replication restrictions;
    - quota-based cost control plan;
-   - AWS service responsibility split.
+   - AWS/service/tool responsibility split.
 2. Write an AWS security/access preflight note in `docs/evaluability-design-doc.md` or `docs/security-preflight.md` covering:
    - selected AWS Region and why eval data must stay there;
    - S3 bucket layout, object ownership, versioning, lifecycle, and replication disabled unless explicitly approved;
    - customer-managed KMS key placeholders for eval inputs, outputs, CloudWatch exports, and managed job encryption where supported;
    - per-lane service roles for Bedrock model eval, RAG eval, AgentCore, Inspect/SageMaker, ECS/Batch, and Step Functions;
+   - server-side Calendar and Slack tools only, with placeholders like `<CALENDAR_ID>`, `<SLACK_DESTINATION>`, and `<CONTACT_EMAIL>`;
+   - no tool secrets, OAuth tokens, calendar IDs, Slack destinations, or AWS details in browser code;
    - model access verification for every generator and evaluator model before job creation;
    - Service Quotas checks for concurrent jobs and model token throughput;
+   - spam/rate-limit controls for chat sessions, booking attempts, and Slack relay;
    - pre-submit cost estimation that multiplies prompts, candidate configs, evaluator runs, repeated-run calibration, and max output tokens;
-   - retention windows for managed outputs, CloudWatch log groups, Athena tables, and public reports.
+   - retention windows for managed outputs, CloudWatch log groups, Athena tables, production trace exports, and public reports.
 3. Define a run manifest format with fields for:
+   - candidate agent version;
    - dataset version;
    - prompt version;
+   - public corpus/index version;
+   - Calendar and Slack tool schema versions;
+   - consent-policy version;
    - model/provider ID and pinned model version (an alias can move under you);
    - inference parameters;
    - scorer versions;
@@ -166,25 +204,30 @@ Most eval systems fail because the app was never instrumented for evaluation, or
    - KMS key ID placeholder;
    - model access preflight status;
    - quota estimate and approval status;
+   - rate-limit configuration version;
    - cost estimate before job submission;
    - run timestamp.
 4. Draft a public-safe evidence policy:
    - what can be committed;
    - what must stay in S3 only;
    - what must be redacted;
-   - how reports are scrubbed.
-5. Sketch the architecture in `docs/architecture.md`.
-6. Write `schemas/run-manifest.schema.json` and a matching `schemas/examples/run-manifest.example.json` that validates against it — so Week 1 ships a checkable artifact, not just prose.
+   - how reports are scrubbed;
+   - how production traces are sampled, sanitized, and summarized without exposing visitor content.
+5. Sketch the candidate-agent and eval-harness architecture in `docs/architecture.md`.
+6. Write `schemas/run-manifest.schema.json` and a matching `schemas/examples/run-manifest.example.json` that validates against it, so Week 1 ships a checkable artifact, not just prose.
 
 ### Validation checks
 
-- A new contributor can explain what will be evaluated and why.
+- A new contributor can explain what the chatbot does, what it refuses, and why those behaviors are evaluated.
 - Every planned artifact has a safe storage location.
 - IAM/KMS/Region/model-access/quota/cost controls exist before dataset work begins.
 - Model access is explicitly checked for both generator and evaluator models in the chosen Region.
 - Data residency is explicit: no accidental cross-region replication, unmanaged CloudWatch retention, or public artifact pipeline for sensitive outputs.
-- The design separates model, RAG, agent, and custom harness lanes.
-- No live AWS identifiers or private examples are present.
+- Calendar writes require explicit visitor confirmation and only create 30-minute calls inside allowed rules.
+- Slack relay is bounded by visitor-provided content, metadata, abuse handling, and rate limits.
+- GitHub/project Q&A cites public sources and says "I don't know" when unsupported.
+- The design separates model, RAG, agent, and custom harness lanes while keeping one live specimen.
+- No live AWS identifiers, private examples, raw traces, real emails, Slack IDs, calendar IDs, private hostnames, or secrets are present.
 - The example run manifest validates against `schemas/run-manifest.schema.json`.
 - Reproducibility is scoped honestly: the manifest pins versions and parameters, but the doc states plainly that hosted models may not reproduce token-for-token.
 
@@ -200,35 +243,39 @@ Most eval systems fail because the app was never instrumented for evaluation, or
 ### Common failure modes
 
 - Treating Bedrock Evaluations as the whole harness.
-- Skipping privacy design until after traces contain sensitive data.
+- Treating the public chatbot as a demo while the eval plan studies a different synthetic app.
+- Skipping privacy design until traces contain visitor content.
 - Forgetting that model invocation logging can capture full prompts and outputs, and that its destination then holds that sensitive content.
 - Starting dataset work before you know which Region, KMS keys, service roles, model access grants, quotas, and retention policies will govern the data.
+- Leaking private memory or private repo context into public answers because it "helps" the assistant sound useful.
 - Treating synthetic datasets as automatically harmless; synthetic prompts can still reveal business logic, security posture, or operational abuse patterns.
 - Promising reproducible runs without pinning model/judge versions or admitting that hosted models may not reproduce token-for-token.
-- Writing “we will evaluate quality” without defining quality.
+- Writing "we will evaluate quality" without defining quality.
 
 ### Stretch goals
 
 - Add a lightweight Mermaid or SVG architecture diagram.
 - Add a `make safety-scan` command.
+- Add a one-page candidate-agent product contract that a recruiter can skim.
 
 ---
 
-## Week 2 — Dataset Contracts and Schema Validators
+## Week 2 — Candidate-Agent Dataset Contracts and Schema Validators
 
 ### Objective
 
-Build dataset schemas and validators before running eval jobs.
+Build synthetic datasets, tool-call contracts, and validators for the `ryanprasad.ai` candidate agent before running eval jobs.
 
 ### Why it matters
 
-AWS eval jobs are schema-sensitive. A harness engineer should fail bad data locally, not after a cloud job burns time and money.
+AWS eval jobs are schema-sensitive, and production agents are contract-sensitive. A harness engineer should fail bad data, unsafe examples, invalid tool payloads, and private identifiers locally, not after a cloud job burns time and money or a public bot sends the wrong action.
 
 ### AWS services/docs to study
 
 - Bedrock model evaluation prompt datasets for model-as-judge
 - Bedrock custom metrics job docs
 - Bedrock RAG retrieve-and-generate prompt dataset docs
+- AgentCore input spans/events and dataset evaluation docs
 
 ### Build tasks
 
@@ -237,17 +284,25 @@ AWS eval jobs are schema-sensitive. A harness engineer should fail bad data loca
    - model BYOI responses;
    - RAG retrieve-and-generate BYOI datasets;
    - retrieval-only RAG BYOI datasets;
+   - candidate-agent chat-turn examples;
+   - Calendar tool calls, including proposed slot, explicit confirmation, 30-minute duration, and allowed-rule checks;
+   - Slack relay tool calls, including visitor-provided message content, metadata, destination placeholder, and rate-limit result;
+   - refusal/escalation outcomes;
    - run manifests.
 2. Build `scripts/validate_dataset.py`:
    - accepts `--schema` and `--input`;
    - validates JSONL line-by-line;
    - reports line numbers and failure reasons;
-   - refuses files with obvious secrets or private identifiers.
+   - refuses files with obvious secrets, real emails, Slack/channel IDs, account IDs, private hostnames, local paths, raw traces, or private identifiers.
 3. Create tiny synthetic datasets under `datasets/synthetic/`:
-   - 20 model prompts;
-   - 20 RAG questions with synthetic contexts;
+   - recruiter/project questions about public GitHub-style project summaries, using synthetic public-safe source snippets;
+   - booking intents that include slot discovery, slot proposal, explicit confirmation, cancellation/ambiguity, and invalid duration attempts;
+   - Slack-message relay intents with visitor-provided content boundaries, metadata, spam/rate-limit cases, and unsupported delivery requests;
+   - unsupported/private-info questions where the right answer is refusal or "I don't know";
+   - prompt-injection attempts using inert canaries such as `INJECTION_CANARY_DO_NOT_FOLLOW`, not working attack text;
+   - spam/rate-limit cases across chat, booking, and Slack relay;
    - 10 intentionally invalid examples under a test fixture directory.
-4. Write `docs/dataset-contracts.md` explaining what each schema is for.
+4. Write `docs/dataset-contracts.md` explaining what each schema is for and which evaluation lane consumes it.
 5. Give every schema a `schema_version` field and keep golden valid/invalid fixtures under a test directory, so CI can prove a schema change did not silently break old data.
 
 ### Validation checks
@@ -255,7 +310,9 @@ AWS eval jobs are schema-sensitive. A harness engineer should fail bad data loca
 - Valid datasets pass locally.
 - Invalid fixtures fail locally with clear messages.
 - JSONL remains line-delimited, not a giant JSON array.
-- Dataset examples use only synthetic content.
+- Dataset examples use only synthetic or explicitly public-safe content.
+- Tool-call schemas reject missing confirmation, invalid duration, invalid destination, unbounded Slack content, and missing rate-limit status.
+- Prompt-injection examples are inert canary cases, not working payloads.
 - Schemas carry a version, and golden fixtures pin expected pass/fail outcomes.
 
 ### Public-safe artifacts to commit
@@ -267,28 +324,30 @@ AWS eval jobs are schema-sensitive. A harness engineer should fail bad data loca
 
 ### Common failure modes
 
-- Mixing model evaluation and RAG evaluation schemas.
+- Mixing model evaluation, RAG evaluation, and agent/tool schemas.
+- Letting the RAG dataset become generic instead of reflecting the chatbot's public project Q&A job.
 - Assuming Bedrock model-eval BYOI means live arbitrary inference. It means you provide `modelResponses` in AWS's expected dataset shape; live app evaluation belongs in AgentCore online/on-demand/batch/dataset evaluation where supported, or in a custom trace/output capture pipeline.
 - Forgetting Bedrock model BYOI constraints (e.g. one model response per prompt and one unique model identifier per job — confirm the current rules in the linked docs).
 - Ignoring Bedrock-native comparison/reporting workflows and building external fan-out for comparisons the managed service already supports.
-- Changing a schema without bumping its version or updating fixtures, so old datasets break silently. For any non-synthetic data later, record license/provenance; this repo stays synthetic-only.
+- Changing a schema without bumping its version or updating fixtures, so old datasets break silently. For any non-synthetic data later, record license/provenance; this repo stays synthetic-only unless the source is explicitly curated as public-safe.
 
 ### Stretch goals
 
 - Add unit tests for validators.
 - Add a schema compatibility matrix for Bedrock model eval, RAG eval, AgentCore, and Inspect AI.
+- Add a contract test that blocks any Calendar write without explicit confirmation.
 
 ---
 
-## Week 3 — Trace Capture and Observability Baseline
+## Week 3 — Production Trace Capture and Observability Baseline
 
 ### Objective
 
-Instrument a small AI app or harness stub so every eval run emits structured evidence, and so agent traces can be exported in OpenTelemetry/OpenInference-compatible form.
+Instrument the `ryanprasad.ai` candidate agent so chat turns, RAG citations, Calendar proposals, booking confirmations, Slack relay attempts, refusals, latency, token/cost usage, and errors produce structured evidence. Export agent traces in OpenTelemetry/OpenInference-compatible form where applicable.
 
 ### Why it matters
 
-You cannot debug what you did not capture. Eval quality depends on trace quality. For AgentCore, do not invent a private primary trace schema; use OpenTelemetry/OpenInference-compatible traces and treat local schemas as normalized exports/contracts for validation, redaction, and reporting.
+You cannot debug what you did not capture. Eval quality depends on trace quality. For AgentCore, do not invent a private primary trace schema; use OpenTelemetry/OpenInference-compatible traces and treat local schemas as normalized exports/contracts for validation, redaction, and reporting. The public repo gets sanitized examples and contracts, not raw visitor traces.
 
 ### AWS services/docs to study
 
@@ -301,17 +360,25 @@ You cannot debug what you did not capture. Eval quality depends on trace quality
 
 ### Build tasks
 
-1. Build a minimal local “candidate app” with two modes:
-   - model-only Q&A stub;
-   - RAG-style answer from synthetic context.
+1. Define trace events for the candidate agent:
+   - chat turn received;
+   - intent classification;
+   - RAG query, retrieved passages, citations, and final answer;
+   - Calendar slot lookup, slot proposal, explicit visitor confirmation, booking attempt, booking confirmation, or refusal;
+   - Slack relay proposal, rate-limit check, relay attempt, success/failure, or refusal;
+   - unsupported/private-info refusal and escalation;
+   - latency, token/cost estimate, rate-limit decision, and error fields.
 2. Emit normalized JSON trace exports with:
-   - run ID;
-   - input prompt;
-   - model or candidate ID;
+   - run/session ID;
+   - redacted input summary or synthetic input in public examples;
+   - candidate agent version;
+   - model/provider ID;
    - generated answer;
    - reference answer where applicable;
-   - retrieved passages;
-   - tool calls if present;
+   - public source citations;
+   - retrieved passages or passage IDs;
+   - tool calls and tool results if present;
+   - consent state for write actions;
    - latency;
    - token/cost estimate placeholders;
    - error fields.
@@ -320,23 +387,30 @@ You cannot debug what you did not capture. Eval quality depends on trace quality
    - trace ID;
    - span ID;
    - scope/name/kind where relevant;
-   - tool-call spans and model invocation spans;
+   - model invocation spans;
+   - retrieval spans;
+   - Calendar and Slack tool-call spans;
+   - refusal/escalation events;
    - CloudWatch log group and retention placeholders.
 4. Write `docs/observability.md`:
    - when to use Bedrock invocation logging;
    - when not to log full prompts/responses;
-   - redaction policy;
-   - how the logging destination inherits prompt/response sensitivity (KMS-encrypt it, lock IAM, bound retention, keep it out of public artifact pipelines);
-   - CloudWatch/S3/Athena query plan.
-5. Add sample CloudWatch Logs Insights and Athena queries as documentation.
+   - redaction and trace-sampling policy;
+   - how the logging destination inherits prompt/response/tool-call sensitivity (KMS-encrypt it, lock IAM, bound retention, keep it out of public artifact pipelines);
+   - CloudWatch/S3/Athena query plan;
+   - how sanitized trace exports feed Bedrock/RAG/AgentCore/Inspect eval lanes.
+5. Add sample CloudWatch Logs Insights and Athena queries as documentation, using placeholders only.
 
 ### Validation checks
 
 - Traces validate against your schema.
 - A failed candidate call produces a structured error record.
-- Public examples do not contain real prompts or sensitive data.
+- Public examples do not contain real prompts, visitor content, identifiers, or sensitive data.
+- Calendar traces prove confirmation happened before a write action.
+- Slack traces show visitor-provided message boundaries, metadata, and rate-limit results.
+- RAG traces contain citations for supported answers and refusal/"I don't know" outcomes for unsupported questions.
 - Agent traces keep OpenTelemetry/OpenInference compatibility; local JSON schemas describe sanitized exports, not a replacement telemetry standard.
-- You can answer: “What failed, how often, and where is the evidence?”
+- You can answer: "What failed, how often, and where is the evidence?"
 
 ### Public-safe artifacts to commit
 
@@ -348,15 +422,17 @@ You cannot debug what you did not capture. Eval quality depends on trace quality
 ### Common failure modes
 
 - Logging everything forever without a retention/sensitivity policy.
+- Committing raw production traces because they are "just examples."
 - Assuming model invocation logging covers every possible Bedrock endpoint.
 - Designing a custom agent trace schema first and then trying to map it back to AgentCore after the fact.
-- Treating the invocation-logging destination as plumbing when it actually holds full prompts and responses — a sensitive store that needs the same controls as the data itself.
+- Treating the invocation-logging destination as plumbing when it actually holds full prompts, responses, and tool-call data — a sensitive store that needs the same controls as the data itself.
 - Failing to record inference parameters, making reruns non-reproducible.
 
 ### Stretch goals
 
 - Add OpenTelemetry trace IDs to local traces.
 - Generate a tiny static HTML report from sample traces.
+- Add a sanitized production-trace summary format with no raw visitor content.
 
 ---
 
@@ -364,7 +440,7 @@ You cannot debug what you did not capture. Eval quality depends on trace quality
 
 ### Objective
 
-Prepare and run the model evaluation lane using Bedrock Evaluations.
+Prepare and run the model evaluation lane using Bedrock Evaluations for candidate-agent responses that are not primarily retrieval or tool-trajectory checks.
 
 ### Why it matters
 
@@ -381,12 +457,13 @@ Managed eval jobs are useful, but only when you understand their schemas, job bo
 ### Build tasks
 
 1. Create a model evaluation dataset adapter:
-   - from internal trace format;
+   - from sanitized candidate-agent trace exports;
    - to Bedrock model evaluation JSONL.
 2. Create a BYOI model evaluation adapter:
    - one model response per prompt;
    - one model identifier per job;
    - evidence that Bedrock skips model invocation for supplied `modelResponses`;
+   - support for importing captured chatbot answers as BYOI responses after redaction/sanitization;
    - a native Bedrock comparison/reporting plan first, with separate manifests only where the selected API/BYOI path requires separate jobs.
 3. Write a Bedrock model eval job template:
    - dataset S3 URI placeholder;
@@ -400,6 +477,7 @@ Managed eval jobs are useful, but only when you understand their schemas, job bo
 
 - Adapter output validates locally.
 - Job templates contain placeholders, not real account details.
+- Candidate-agent examples are sanitized and scoped to supported intents.
 - Multi-model or multi-config comparison starts with Bedrock-native reports/comparison where supported; any extra manifests explain why custom coordination is needed.
 - Output handling expects managed reports and S3 result artifacts, not console screenshots.
 
@@ -446,7 +524,9 @@ A judge prompt is production logic. Treat it like code, not a magic incantation.
    - harmlessness;
    - instruction following;
    - citation support;
-   - refusal appropriateness.
+   - refusal appropriateness;
+   - booking-consent appropriateness;
+   - Slack-relay appropriateness.
 2. For each rubric, define:
    - purpose;
    - allowed scores;
@@ -455,6 +535,7 @@ A judge prompt is production logic. Treat it like code, not a magic incantation.
    - examples of good/bad judgments.
 3. Build a calibration dataset:
    - 50 synthetic examples;
+   - examples from public project Q&A, booking, Slack relay, unsupported/private-info, and inert injection classes;
    - human labels;
    - expected failure labels.
 4. Write a judge validation notebook or script:
@@ -501,11 +582,11 @@ A judge prompt is production logic. Treat it like code, not a magic incantation.
 
 ### Objective
 
-Build the RAG evaluation lane with both retrieval-only and end-to-end retrieve-and-generate datasets, while preserving RAG source/configuration identity for native comparison and managed reports.
+Build the RAG evaluation lane for the candidate agent's GitHub/project Q&A, with both retrieval-only and end-to-end retrieve-and-generate datasets, while preserving RAG source/configuration identity for native comparison and managed reports.
 
 ### Why it matters
 
-RAG failures split into retrieval failures and generation failures. If you only score the final answer, you will blame the wrong subsystem.
+RAG failures split into retrieval failures and generation failures. If you only score the final answer, you will blame the wrong subsystem. For a public portfolio chatbot, the invariant is simple: answers about Ryan's projects must be grounded in public/project-safe sources or say "I don't know."
 
 ### AWS services/docs to study
 
@@ -517,31 +598,44 @@ RAG failures split into retrieval failures and generation failures. If you only 
 
 ### Build tasks
 
-1. Create synthetic RAG corpus and questions.
-2. Build adapters for:
+1. Create a public/project-safe RAG corpus plan:
+   - public GitHub README/project summaries;
+   - public-safe curated project notes;
+   - source URL/title placeholders where needed;
+   - explicit exclusion of private repos, private memory, Honcho/Graphiti content, private transcripts, raw issue exports, private paths, and generated provider responses.
+2. Create synthetic RAG corpus and questions that mirror the candidate agent:
+   - recruiter-style project questions;
+   - technical architecture questions;
+   - "what did Ryan build?" summaries;
+   - unsupported/private-info questions where the correct outcome is "I don't know" or refusal;
+   - distractor passages and stale-source cases.
+3. Build adapters for:
    - retrieval-only BYOI;
    - retrieve-and-generate BYOI;
-   - internal trace to Bedrock RAG JSONL.
-3. Define a RAG source/configuration registry:
+   - sanitized candidate-agent trace exports to Bedrock RAG JSONL.
+4. Define a RAG source/configuration registry:
    - Bedrock Knowledge Base ID placeholder;
    - external RAG source ID placeholder;
    - retriever/generator configuration ID;
    - index/corpus version;
+   - public-source provenance and citation format;
    - native Bedrock report/comparison mapping where supported;
    - separate job manifest mapping where the selected custom BYOI path is scoped to one RAG source.
-4. Add a retrieval diagnostic report:
+5. Add a retrieval diagnostic report:
    - top-k retrieved passages;
    - expected supporting passage;
    - missing-context failures;
    - irrelevant-context failures.
-5. Write `docs/rag-eval-runbook.md`.
+6. Write `docs/rag-eval-runbook.md`.
 
 ### Validation checks
 
 - Retrieval-only metrics can be interpreted separately from answer metrics.
 - RAG reports clearly identify each source/configuration; native comparison/reporting is used where supported.
 - If the chosen custom BYOI path is scoped to one RAG source, the runbook documents that as a path-specific constraint instead of a blanket RAG architecture rule.
-- References and retrieved passages are synthetic and safe.
+- References and retrieved passages are synthetic or explicitly public-safe.
+- Supported project answers cite public sources.
+- Unsupported project/private-info questions produce "I don't know" or refusal, not invented detail.
 - Citation metrics are only used when citation structures exist.
 
 ### Public-safe artifacts to commit
@@ -554,6 +648,7 @@ RAG failures split into retrieval failures and generation failures. If you only 
 ### Common failure modes
 
 - Collapsing retrieval quality and generation quality into one vague score.
+- Treating "Ryan probably knows this" as support. The check is whether the public corpus supports it.
 - Missing the required RAG-source identifier in custom RAG BYOI output (confirm the exact field name, e.g. `knowledgeBaseIdentifier`, in the linked dataset docs).
 - Losing RAG source/config IDs, which makes native reports and any cross-job comparison impossible to interpret.
 - Treating a custom BYOI one-source constraint as if all Bedrock RAG comparison paths had the same shape.
@@ -591,7 +686,12 @@ LLM judges are flexible. Deterministic scorers are boring in the best possible w
    - required field presence;
    - refusal phrase detection;
    - citation format validity;
-   - tool-call argument shape.
+   - citation source allowlist/no-private-source checks;
+   - no-secret/no-private-identifier checks;
+   - tool-call argument shape;
+   - Calendar confirmation-before-write;
+   - 30-minute Calendar duration and allowed-rule checks;
+   - Slack relay destination placeholder, metadata, visitor-content boundary, and rate-limit status.
 2. Package scorers as local CLI functions first.
 3. Design optional Lambda wrappers only for tiny deterministic checks, AgentCore code-based evaluators, or event dispatch glue.
 4. Define when **not** to use Lambda:
@@ -605,6 +705,7 @@ LLM judges are flexible. Deterministic scorers are boring in the best possible w
 
 - Scorers are deterministic and unit-tested.
 - Scorer outputs include version, inputs, score, and explanation.
+- Calendar and Slack scorer failures can block a candidate-agent release before a write-capable tool ships.
 - Lambda design is explicitly optional and small; sustained eval runtime is assigned to managed Bedrock/AgentCore jobs, SageMaker, ECS, or AWS Batch.
 
 ### Public-safe artifacts to commit
@@ -631,11 +732,11 @@ LLM judges are flexible. Deterministic scorers are boring in the best possible w
 
 ### Objective
 
-Make agent/tool evaluation first-class inside the same evaluation pipeline using Amazon Bedrock AgentCore Evaluations patterns.
+Make Calendar booking and Slack relay evaluation first-class inside the same evaluation pipeline using Amazon Bedrock AgentCore Evaluations patterns.
 
 ### Why it matters
 
-Agent eval is not just “did the final answer sound okay?” You need traces: tool choice, arguments, order, recovery behavior, safety boundaries, and state transitions. AgentCore Evaluations is not a separate island; it plugs into the same manifest, security, quota, reporting, and regression-gate pipeline as the model and RAG lanes. The durable, checkable artifact this week is OpenTelemetry/OpenInference-compatible synthetic traces, evaluator specs, and a runbook. A live managed agent eval is useful, but not required for a public-safe learning artifact.
+Agent eval is not just "did the final answer sound okay?" You need traces: tool choice, arguments, order, confirmation state, recovery behavior, safety boundaries, and state transitions. AgentCore Evaluations is not a separate island; it plugs into the same manifest, security, quota, reporting, and regression-gate pipeline as the model and RAG lanes. The durable, checkable artifact this week is OpenTelemetry/OpenInference-compatible synthetic traces, evaluator specs, and a runbook. A live managed agent eval is useful, but not required for a public-safe learning artifact.
 
 ### AWS services/docs to study
 
@@ -649,18 +750,26 @@ Agent eval is not just “did the final answer sound okay?” You need traces: t
 ### Build tasks
 
 1. Define an agent task suite:
-   - tool selection;
+   - project Q&A should use RAG, not Calendar or Slack tools;
+   - booking intent should propose slots before writing;
+   - Calendar writes require explicit visitor confirmation;
+   - Calendar tool arguments must use a 30-minute duration, allowed rules, and `<CALENDAR_ID>`;
+   - Slack relay requires visitor-provided content, metadata, rate-limit pass, and `<SLACK_DESTINATION>`;
+   - wrong-tool detection;
    - tool argument validity;
    - multi-turn state tracking;
    - safe refusal;
    - recovery from tool failure;
-   - prompt-injection resistance.
+   - prompt-injection resistance using inert canaries.
 2. Create synthetic OpenTelemetry/OpenInference-compatible trace examples.
 3. Build an adapter from internal normalized exports to AgentCore-compatible spans/events without making the custom export schema the primary trace model.
 4. Define custom agent evaluators:
    - wrong tool;
    - unsafe tool call;
    - missing confirmation;
+   - invalid Calendar duration or slot;
+   - Slack relay without visitor-provided content boundary;
+   - missing rate-limit decision;
    - hallucinated external action;
    - failed recovery.
 5. Show how the same run manifest records AgentCore evaluator IDs, evaluation mode, CloudWatch log group placeholders, KMS/retention decisions, and token usage.
@@ -670,6 +779,8 @@ Agent eval is not just “did the final answer sound okay?” You need traces: t
 
 - Agent tasks inspect trace behavior, not only final text.
 - Tool-call arguments are checked deterministically where possible.
+- Tool choice is correct for RAG answer, Calendar booking, Slack relay, refusal, and unsupported intents.
+- Calendar and Slack trajectories prove consent, valid arguments, and rate-limit handling.
 - Safety evals distinguish “refused safely” from “failed to complete.”
 - AgentCore outputs join the same run-result/reporting path as Bedrock model and RAG evaluations.
 - Simulation mode is treated as useful but not equivalent to production behavior.
@@ -719,9 +830,9 @@ Some evals are programs: multi-step tasks, tool-use games, sandboxed code checks
 ### Build tasks
 
 1. Write one Inspect AI task for:
-   - model-only reasoning;
-   - RAG answer checking;
-   - agent/tool-use replay.
+   - model-only response quality for candidate-agent turns;
+   - RAG answer checking for public GitHub/project Q&A;
+   - Calendar and Slack agent/tool-use replay from sanitized traces.
 2. Create an Inspect recipe YAML with:
    - model configuration placeholder;
    - dataset path placeholder;
@@ -764,7 +875,7 @@ Some evals are programs: multi-step tasks, tool-use games, sandboxed code checks
 
 ### Objective
 
-Build the orchestration layer that turns individual eval pieces into repeatable runs.
+Build the orchestration layer that turns candidate-agent traces, datasets, and eval pieces into repeatable runs.
 
 ### Why it matters
 
@@ -784,10 +895,10 @@ A harness is the system that runs deterministic preflight and data-processing st
    - verify Region, IAM, KMS, S3, CloudWatch retention, model access, and quotas;
    - estimate cost before job submission;
    - validate dataset;
-   - generate or import candidate responses;
+   - generate synthetic candidate responses or import sanitized production trace exports;
    - dispatch Bedrock model eval jobs;
-   - dispatch RAG eval jobs;
-   - dispatch AgentCore evals;
+   - dispatch RAG eval jobs for public project Q&A;
+   - dispatch AgentCore evals for Calendar/Slack trajectories and refusal paths;
    - dispatch Inspect/custom tasks;
    - aggregate results;
    - publish report.
@@ -806,6 +917,7 @@ A harness is the system that runs deterministic preflight and data-processing st
 - Failures are captured as structured states, not lost terminal output.
 - Managed-job IDs are persisted in the manifest so result artifacts can be fetched and re-summarized later.
 - A retried run is idempotent or resumable: it reuses its run ID and does not silently double-bill managed jobs.
+- Production-derived runs use sanitized exports only and keep raw traces out of public artifacts.
 
 ### Public-safe artifacts to commit
 
@@ -856,12 +968,15 @@ Evals become real when they affect shipping decisions. Otherwise they are a dash
 2. Define regression gates:
    - deterministic scorer thresholds;
    - judge score thresholds backed by calibration and repeated-run variance;
+   - citation/no-private-source gates for public project answers;
+   - Calendar confirmation, duration, and valid-payload gates;
+   - Slack relay rate-limit, metadata, and visitor-content-boundary gates;
    - allowed confidence interval movement;
    - cost/latency budgets.
 3. Design AWS CI/CD path:
    - CodeBuild or GitHub Actions OIDC;
    - deploy/update eval infrastructure;
-   - trigger scheduled eval runs;
+   - trigger scheduled synthetic eval runs and sanitized production-trace eval runs;
    - publish summary report.
 4. Write `docs/regression-gates.md` and `docs/cost-controls.md`.
 
@@ -871,6 +986,7 @@ Evals become real when they affect shipping decisions. Otherwise they are a dash
 - CI fails on unsafe public examples.
 - Regression gates are documented with rationale.
 - Cost controls separate experiment budget from any production monitoring path.
+- Monitoring tracks refusal rate, unsupported-question rate, Calendar proposal/write success, Slack relay attempts, rate-limit decisions, latency, token usage, and cost without exposing raw visitor content.
 - Every run records a per-run cost estimate, Service Quotas checks, maximum prompt count, maximum candidate/config count, maximum repeated-run count, and required approval state before submitting managed jobs.
 - Tags are included for allocation, but they are not the control plane; quotas, budgets, pre-submit estimates, and hard manifest limits stop runaway jobs.
 - Committed IAM/KMS templates use scoped, per-lane roles and customer-managed KMS key placeholders, with wildcard (`*`) exceptions documented and justified if AWS requires them.
@@ -900,7 +1016,7 @@ Evals become real when they affect shipping decisions. Otherwise they are a dash
 
 ### Objective
 
-Package the whole thing into a deployable, reviewable, public-safe reference architecture.
+Package the whole thing into a deployable, reviewable, public-safe reference architecture and final evidence packet for the `ryanprasad.ai` candidate agent.
 
 ### Why it matters
 
@@ -913,6 +1029,7 @@ Review everything from Weeks 1-11, then focus on integration gaps.
 ### Build tasks
 
 1. Assemble the capstone package:
+   - candidate-agent product/eval contract;
    - CDK or Terraform stack skeleton;
    - S3 bucket layout;
    - IAM/KMS policy placeholders;
@@ -926,13 +1043,14 @@ Review everything from Weeks 1-11, then focus on integration gaps.
    - schemas and validators;
    - run manifest and result summarizer;
    - dashboards/runbooks;
-   - public-safe report.
+   - public-safe report for GitHub/project answers, Calendar booking, Slack relay, refusals, latency, and cost.
 2. Run an end-to-end synthetic local harness run.
 3. If using an AWS sandbox account, run one minimal live cloud path and keep live output out of the repo.
 4. Publish a final report under `docs/reports/capstone.md` with:
    - what was built;
    - what was validated;
    - what was not validated;
+   - what live-chatbot evidence was synthetic vs sanitized production-derived;
    - cost/security assumptions;
    - known limitations;
    - next steps.
@@ -943,6 +1061,7 @@ Review everything from Weeks 1-11, then focus on integration gaps.
 - Local synthetic validation passes.
 - Cloud instructions use placeholders only.
 - Claims match evidence.
+- The public evidence packet can be read without private context and contains no raw traces, emails, Slack IDs, calendar IDs, account IDs, private URLs, or secrets.
 - The public report does not imply production readiness, safety certification, universal correctness, or magic eval truth.
 
 ### Public-safe artifacts to commit
@@ -957,6 +1076,7 @@ Review everything from Weeks 1-11, then focus on integration gaps.
 
 - Publishing cloud screenshots or logs with identifiers.
 - Saying “production-ready” when only synthetic local tests ran.
+- Publishing raw chatbot traces or tool outputs as evidence.
 - Letting the capstone become a pile of disconnected files instead of a harness.
 - Claiming the reference architecture proves more than its scenario-specific evidence supports.
 
@@ -982,8 +1102,10 @@ The finished package should include:
   - optional CodeBuild/GitHub Actions integration.
 - **Dataset layer**
   - synthetic model eval dataset;
-  - synthetic RAG dataset;
-  - agent/tool task dataset;
+  - synthetic public GitHub/project Q&A RAG dataset;
+  - Calendar booking task dataset;
+  - Slack relay task dataset;
+  - unsupported/private-info, inert prompt-injection, and spam/rate-limit datasets;
   - human-label calibration set;
   - dataset schemas and validators.
 - **Adapter layer**
@@ -994,6 +1116,9 @@ The finished package should include:
   - run manifest writer.
 - **Scoring layer**
   - deterministic scorer library;
+  - citation/no-private-source/no-secret checks;
+  - valid Calendar payload and confirmation-before-write checks;
+  - valid Slack relay payload, metadata, visitor-content-boundary, and rate-limit checks;
   - custom metric/rubric library;
   - judge validation report;
   - regression gate checker.
@@ -1006,12 +1131,14 @@ The finished package should include:
 - **Ops layer**
   - CloudWatch metric examples;
   - Athena/Glue query examples;
+  - production-trace sanitization and sampling notes;
   - quota checks, budgets, pre-submit cost estimates, and cost allocation tags;
   - CloudTrail/audit notes;
   - runbook.
 - **Evidence layer**
-  - public-safe capstone report;
+  - public-safe candidate-agent evidence packet;
   - synthetic run summary;
+  - sanitized production-derived summary if used;
   - limitations section;
   - source ledger.
 
@@ -1023,7 +1150,9 @@ The finished package should include:
 | Score BYOI model responses | Bedrock Model Evaluation BYOI | Useful when candidate outputs are generated outside Bedrock |
 | Score retrieval quality | Bedrock RAG retrieval evaluation | Separates retrieval from generation failures |
 | Score RAG answer quality | Bedrock RAG retrieve-and-generate evaluation | Uses RAG-specific metrics such as faithfulness and citation coverage |
+| Evaluate public project Q&A | Bedrock RAG evals + deterministic citation/source checks | Verifies the chatbot answers from public/project-safe support or says "I don't know" |
 | Evaluate live or captured agent behavior | Bedrock AgentCore online/on-demand/batch/dataset evaluations | Designed around sessions, traces, spans, tool calls, and evaluator modes |
+| Evaluate Calendar and Slack tool flows | AgentCore evals + deterministic schema/consent/rate-limit scorers | Tool choice and side effects need trace-level evidence, not just final-answer grading |
 | Run complex programmatic evals | Inspect AI on SageMaker/ECS/Batch | Eval logic is code, not only judge prompts |
 | Validate data and run lightweight scoring | Local CLI first; tiny Lambda only for small code-based evaluators or event glue | Fast schema checks and deterministic scoring without turning Lambda into an eval runtime |
 | Coordinate managed and custom work | Bedrock-native workflows first, Step Functions when preflight/CI/CD/cross-service glue is needed | Use managed comparison/reporting where supported; add explicit state, retries, failure handling, and auditability around it |
@@ -1040,7 +1169,10 @@ Do not claim:
 - “BYOI evaluates any live app automatically.” Bedrock model-eval BYOI means you provide `modelResponses` in the expected schema and Bedrock skips model invocation; live app evaluation belongs in AgentCore-supported flows or a custom capture pipeline feeding supported inputs.
 - “LLM-as-judge is ground truth.” It is a judge with measurable error.
 - “Synthetic tests prove production safety.” They prove behavior on synthetic tests.
+- “The candidate agent is safe because it has evals.” Evals are scoped evidence, not a guarantee.
 - “Agent simulation equals production behavior.” It is useful evidence, not a deployment guarantee.
+- “Calendar or Slack tool success proves consent.” Consent is a recorded state transition before a server-side write, not a pleasant final message.
+- “Project Q&A can use anything Ryan has ever written.” Public answers need public/project-safe sources and citations.
 - “A passing eval means the model is safe.” It means it passed a scoped test suite.
 - “One RAG score explains everything.” Retrieval and generation failures must be separated.
 - “Serverless means Lambda for everything.” Heavy eval workloads often belong in SageMaker, ECS, Batch, or managed Bedrock jobs.
@@ -1054,7 +1186,7 @@ Use the same loop every week:
 
 1. Read the relevant AWS docs.
 2. Add or update schemas.
-3. Build a tiny synthetic example.
+3. Build a tiny synthetic candidate-agent example.
 4. Validate locally.
 5. Add a runbook.
 6. Add a public-safe report or screenshot-free receipt.
