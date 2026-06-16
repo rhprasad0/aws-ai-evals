@@ -18,3 +18,4 @@ results/
 *.ndjson
 *.jsonl
 !.github/**/*.jsonl
+!datasets/synthetic/*.jsonl

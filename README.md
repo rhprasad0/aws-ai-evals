@@ -1,29 +1,31 @@
 # AWS AI Evals
 
-> Building a public AI agent, then forcing it to survive an eval harness. No vibes-only victory laps.
+> Building a recruiter-facing evidence chatbot, then forcing it to survive an eval harness. No vibes-only victory laps.
 
-Public learning repo for building an AWS-native AI evaluation harness around a real production experiment: the **ryanprasad.ai candidate agent**.
+Public learning repo for building an AWS-native AI evaluation harness around a real production experiment: the **ryanprasad.ai candidate evidence chatbot**.
 
-The live app is a public chatbot that helps visitors understand Ryan's public GitHub projects, book a 30-minute call, and send Ryan a Slack message. The learning goal is to build the AWS eval harness around that real agent instead of evaluating a toy demo in a vacuum.
+The live app is a public chatbot that answers recruiter-style evidence questions about Ryan's public GitHub projects with citations — e.g. “Where does Ryan show container orchestration?” The learning goal is to build the AWS eval harness around that real behavior instead of evaluating a toy demo in a vacuum.
 
 ```text
-public chatbot → traces → datasets → Bedrock/AgentCore evals → deterministic checks → public-safe receipts
+evidence chatbot → traces → datasets → Bedrock/RAG evals → deterministic checks → public-safe receipts
 ```
 
 Start here:
 
 - [`docs/aws-ai-evals-learning-plan.md`](docs/aws-ai-evals-learning-plan.md) — 12-week roadmap, production experiment, and source ledger
+- [`docs/ryanprasad-ai-chatbot.md`](docs/ryanprasad-ai-chatbot.md) — V1 candidate evidence chatbot spec
+- [`content/profile.md`](content/profile.md) — canonical public evidence source for the chatbot
 - [`AGENTS.md`](AGENTS.md) — repo rules for public safety, teaching style, and coding-agent behavior
 
 ## The bet
 
-A public AI agent is only impressive if it can be inspected.
+A public AI evidence bot is only impressive if it can be inspected.
 
 This repo treats `ryanprasad.ai` as the lab rat — useful, alive, slightly fancy — and builds the evaluation system around it. The point is not “chatbot exists.” The point is:
 
-- can it answer from public evidence?
+- can it answer recruiter questions from public evidence?
 - can it say “I don't know” when the evidence is missing?
-- can it use Calendar and Slack tools without becoming a chaos goblin?
+- can it cite the repo/profile sources that support the answer?
 - can changes be gated by evals instead of vibes?
 
 ## For recruiters
@@ -44,12 +46,12 @@ The specimen is a public chatbot on `ryanprasad.ai`.
 
 It should:
 
-- answer questions about Ryan's public GitHub projects from public/project-safe sources, with citations;
-- help visitors book a 30-minute Google Calendar call after explicit confirmation;
-- relay visitor-provided messages to Ryan in Slack with metadata, spam checks, and rate limits;
+- answer recruiter questions about Ryan's public GitHub projects from public/project-safe sources, with citations;
+- map skills to concrete public evidence, starting with questions like “Where does Ryan show container orchestration?”;
+- distinguish strong evidence, lab/project evidence, weak evidence, and unsupported claims;
 - refuse or escalate unsupported, private, unsafe, or ambiguous requests.
 
-RAG/project Q&A comes first because it is the main user value and the cleanest place to build citation-backed evidence. Calendar booking and Slack relay are server-side tool-use flows evaluated for consent, correct tool choice, valid arguments, rate limiting, and refusal behavior.
+RAG/project Q&A comes first because it is the main user value and the cleanest place to build citation-backed evidence. Calendar booking and Slack relay are deferred tool-use flows, not V1 scope.
 
 ## What this is
 
@@ -57,23 +59,22 @@ A public-safe AWS AI evals learning harness, built in stages:
 
 | Layer | What it proves |
 |---|---|
-| Public/project RAG | Answers are grounded in inspectable sources, not résumé fan fiction |
-| Calendar tool flow | Side effects require consent and valid arguments |
-| Slack relay | Visitor messages are bounded, attributed, rate-limited, and reviewable |
+| Public/project RAG | Recruiter answers are grounded in inspectable sources, not résumé fan fiction |
+| Citation checks | Every skill claim points to a public source label |
+| Evidence calibration | The bot says when evidence is lab/project/WIP instead of puffing it up |
 | Bedrock evaluations | Managed model/RAG scoring is used where AWS already provides it |
-| AgentCore evaluations | Tool trajectories, refusals, and state transitions are testable |
-| Deterministic scorers | Secrets, citations, schemas, confirmations, and limits get hard checks |
+| Agent/tool evaluations | Optional Phase 2 tool trajectories are testable if Calendar/Slack return later |
+| Deterministic scorers | Secrets, citations, schemas, unsupported claims, and limits get hard checks |
 | CI/reporting | Changes produce public-safe receipts instead of “trust me bro” |
 
 ## Product boundaries
 
-The useful invariant: the chatbot can help visitors contact Ryan, but it cannot become an untrusted stranger with write access to Ryan's life.
+The useful invariant: the chatbot can explain Ryan's public evidence, but it cannot become a résumé fan-fiction machine.
 
 - No private memory, private notes, transcripts, or private repo content in public answers unless explicitly curated into public-safe docs.
-- Server-side tools only; no tokens, calendar IDs, Slack destinations, or AWS details in browser code.
-- Calendar writes require explicit visitor confirmation and only create 30-minute call events within allowed scheduling rules.
-- Slack relay preserves visitor-provided content boundaries and includes abuse handling.
+- No Calendar or Slack writes in V1.
 - GitHub/project Q&A cites public sources and says “I don't know” when support is missing.
+- Evidence strength is part of the answer: strong public artifact, lab/project artifact, WIP, weak support, or unsupported.
 
 ## Progress chart
 
@@ -81,14 +82,14 @@ Current phase: **production-experiment planning and repo contracts**. The roadma
 
 | Week | Focus | How the chatbot fits | Status | Progress |
 |---:|---|---|---|---|
-| 1 | 🧭 Evaluability design, security envelope, repo contracts | Define visitor intents, consent rules, data boundaries, IAM/secrets, threat model | 🚧 In progress | 🟩🟩🟩⬜⬜ 60% |
-| 2 | 🧱 Dataset contracts and schema validators | Synthetic project Q&A, booking, Slack relay, unsupported/private-info, spam, and inert injection cases | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
-| 3 | 📡 Trace capture and observability baseline | Chat turns, RAG citations, tool proposals, confirmations, refusals, latency, token/cost usage | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
+| 1 | 🧭 Evaluability design, security envelope, repo contracts | Define recruiter evidence questions, citation rules, data boundaries, IAM/secrets, threat model | 🚧 In progress | 🟩🟩🟩⬜⬜ 60% |
+| 2 | 🧱 Dataset contracts and schema validators | Synthetic recruiter Q&A, skill-to-evidence labels, unsupported/private-info, and inert injection cases | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
+| 3 | 📡 Trace capture and observability baseline | Chat turns, source labels, evidence strength, refusals, latency, token/cost usage | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
 | 4 | ⚖️ Bedrock model evaluations | Evaluate answer quality and judge behavior for candidate-agent turns | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
 | 5 | 🧪 Custom metrics and judge rubrics | Calibrate rubrics for project answers, refusals, consent, and tool safety | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
 | 6 | 🔎 Bedrock RAG evaluations | Evaluate public GitHub/project retrieval and citation support | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
 | 7 | ✅ Deterministic scorers and small event glue | Check citations, no secrets, valid tool payloads, confirmation gates, rate limits | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
-| 8 | 🛠️ AgentCore agent/tool evaluations | Evaluate Calendar and Slack tool choice, arguments, trajectories, escalation/refusal | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
+| 8 | 🛠️ Agent/tool evaluations | Optional Phase 2: evaluate Calendar/Slack tool choice only if tools are added later | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
 | 9 | 🧰 Inspect AI on AWS | Replay candidate-agent scenarios and custom evals | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
 | 10 | 🔁 Orchestration, manifests, repeatable evidence | Run repeatable candidate-agent eval suites with versioned manifests | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
 | 11 | 🚦 CI/CD, regression gates, monitoring, cost controls | Gate risky chatbot changes and monitor drift/cost/failures | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
@@ -128,4 +129,4 @@ Everything here uses synthetic data, placeholders, or explicitly public/project-
 
 ## Current north star
 
-Ship the smallest useful public agent, then make every risky behavior observable, testable, and boring. Boring is good. Boring means the raccoon found the lid locked.
+Ship the smallest useful public evidence bot, then make every claim observable, testable, and boring. Boring is good. Boring means the résumé raccoon found the lid locked.
