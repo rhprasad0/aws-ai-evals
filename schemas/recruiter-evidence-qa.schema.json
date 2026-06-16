@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Recruiter Evidence QA Row",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "question",
+    "expected_sources",
+    "must_include",
+    "must_not_claim",
+    "expected_evidence_strength",
+    "referenceResponse",
+    "category"
+  ],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "question": {"type": "string", "minLength": 1},
+    "expected_sources": {"type": "array", "items": {"type": "string"}},
+    "must_include": {"type": "array", "items": {"type": "string"}},
+    "must_not_claim": {"type": "array", "items": {"type": "string"}},
+    "expected_evidence_strength": {
+      "type": "string",
+      "enum": [
+        "high_public_project",
+        "medium_high_public_project",
+        "medium_high_lab_project",
+        "calibration_required",
+        "weak_support",
+        "unsupported",
+        "unsupported_private"
+      ]
+    },
+    "referenceResponse": {"type": "string", "minLength": 1},
+    "category": {"type": "string", "minLength": 1}
+  }
+}

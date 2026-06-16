@@ -14,7 +14,9 @@ PATTERNS = {
     "aws_access_key": re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     "secret_token": re.compile(r"\b(?:sk|gh[pousr]|xox[baprs])-[-A-Za-z0-9_]{16,}\b"),
     "private_key": re.compile(r"-----BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----"),
-    "likely_internal_ip": re.compile(r"\b(?:10|172\.(?:1[6-9]|2[0-9]|3[01])|192\.168)\.\d{1,3}\.\d{1,3}\b"),
+    "likely_internal_ip": re.compile(
+        r"\b(?:10\.\d{1,3}|172\.(?:1[6-9]|2[0-9]|3[01])|192\.168)\.\d{1,3}\.\d{1,3}\b"
+    ),
 }
 ALLOW = [
     "A[K]IA",

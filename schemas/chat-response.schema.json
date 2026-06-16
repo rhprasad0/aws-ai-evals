@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Candidate Chatbot Response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["answer", "citations", "evidenceStrength", "unsupportedClaims"],
+  "properties": {
+    "answer": {"type": "string", "minLength": 1},
+    "citations": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "evidenceStrength": {
+      "type": "string",
+      "enum": [
+        "high_public_project",
+        "medium_high_public_project",
+        "medium_high_lab_project",
+        "calibration_required",
+        "weak_support",
+        "unsupported",
+        "unsupported_private"
+      ]
+    },
+    "unsupportedClaims": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  }
+}

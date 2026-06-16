@@ -1,0 +1,13 @@
+{
+  "run_id": "example-local-contract-run",
+  "region": "us-east-1",
+  "model_id": "us.amazon.nova-2-lite-v1:0",
+  "dataset": "datasets/synthetic/recruiter-evidence-qa.jsonl",
+  "source_version": "content/profile.md",
+  "preflight": {
+    "list_foundation_models": "not_run",
+    "list_inference_profiles": "not_run",
+    "get_inference_profile": "not_run",
+    "converse_smoke": "not_run"
+  }
+}

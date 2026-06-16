@@ -1,0 +1,14 @@
+[project]
+name = "ryanprasad-chatbot-backend"
+version = "0.1.0"
+description = "Backend contracts for the ryanprasad.ai candidate evidence chatbot"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"

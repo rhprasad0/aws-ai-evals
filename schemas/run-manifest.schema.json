@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Candidate Chatbot Eval Run Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "region", "model_id", "dataset", "source_version", "preflight"],
+  "properties": {
+    "run_id": {"type": "string", "minLength": 1},
+    "region": {"type": "string", "minLength": 1},
+    "model_id": {"type": "string", "minLength": 1},
+    "dataset": {"type": "string", "minLength": 1},
+    "source_version": {"type": "string", "minLength": 1},
+    "preflight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["list_foundation_models", "list_inference_profiles", "get_inference_profile", "converse_smoke"],
+      "properties": {
+        "list_foundation_models": {"type": "string"},
+        "list_inference_profiles": {"type": "string"},
+        "get_inference_profile": {"type": "string"},
+        "converse_smoke": {"type": "string"}
+      }
+    }
+  }
+}
