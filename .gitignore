@@ -20,6 +20,7 @@ __pycache__/
 .DS_Store
 .codex/
 .claude/
+.hermes/
 *.log
 /tmp/
 scratch/
