@@ -145,7 +145,7 @@ Most eval systems fail because the app was never instrumented for evaluation, or
 ### AWS services/docs to study
 
 - Amazon Bedrock Evaluations overview
-- Bedrock model access, supported models, Region availability, and Service Quotas
+- Bedrock model access, `ListFoundationModels`, inference profiles, Region availability, and Service Quotas
 - Bedrock model/RAG evaluation IAM service role and KMS requirements
 - Bedrock and AgentCore data protection/encryption docs
 - Bedrock model invocation logging
@@ -160,6 +160,7 @@ Most eval systems fail because the app was never instrumented for evaluation, or
    - threat model for prompt injection, spam, data leakage, citation fabrication, evidence inflation, and unsupported claims;
    - public/private data boundary, including "public GitHub/project-safe sources only" for answers;
    - rule that no Honcho, Graphiti, private memory, private notes, transcripts, or private repos feed public answers unless explicitly curated into public-safe docs;
+   - source sanitization rules that remove or escape instruction-like markers before prompt stuffing and wrap sources in explicit public-facts delimiters;
    - trace schema draft for chat turns, Bedrock invocation-log references, source labels, evidence strength, refusals, latency, token/cost usage, and error fields;
    - privacy/safety policy;
    - region pinning and data residency policy;
@@ -176,11 +177,14 @@ Most eval systems fail because the app was never instrumented for evaluation, or
    - no V1 tool writes; Calendar and Slack remain Phase 2 only;
    - no tool secrets, OAuth tokens, calendar IDs, Slack destinations, or AWS details in browser code;
    - model access verification for every generator and evaluator model before job creation;
-   - default chatbot model/profile `us.amazon.nova-2-lite-v1:0`, with `global.amazon.nova-2-lite-v1:0` only as an intentional fallback;
+   - `ListFoundationModels` and, where applicable, `ListInferenceProfiles` preflight in the target Region;
+   - default chatbot model/profile `us.amazon.nova-2-lite-v1:0`, with fail-closed behavior unless an explicit lab fallback model is configured;
+   - optional lab fallback model documented in the run manifest when Nova 2 Lite is unavailable;
    - Converse API as the default Bedrock Runtime API;
    - explicit `maxTokens` default of `768` for V1 chatbot calls;
+   - Lambda runtime IAM scoped to selected model/profile ARNs, not `bedrock:*` or `Resource: "*"`;
    - Service Quotas checks for concurrent jobs and model token throughput;
-   - spam/rate-limit controls for chat sessions;
+   - spam/rate-limit controls for chat sessions, including API Gateway throttle defaults and DynamoDB salted hashed-identity/time-window composite counters;
    - pre-submit cost estimation that multiplies prompts, candidate configs, evaluator runs, repeated-run calibration, and max output tokens;
    - retention windows for managed outputs, CloudWatch log groups, Athena tables, production trace exports, and public reports.
 3. Define a run manifest format with fields for:
@@ -202,6 +206,7 @@ Most eval systems fail because the app was never instrumented for evaluation, or
    - model access preflight status;
    - quota estimate and approval status;
    - rate-limit configuration version;
+   - profile source size and cold-start target;
    - cost estimate before job submission;
    - run timestamp.
 4. Draft a public-safe evidence policy:
@@ -217,11 +222,12 @@ Most eval systems fail because the app was never instrumented for evaluation, or
 
 - A new contributor can explain what the chatbot does, what it refuses, and why those behaviors are evaluated.
 - Every planned artifact has a safe storage location.
-- IAM/KMS/Region/model-access/quota/cost controls exist before dataset work begins, including the selected Nova 2 Lite inference profile and explicit `maxTokens`.
+- IAM/KMS/Region/model-access/quota/cost controls exist before dataset work begins, including `ListFoundationModels`/inference-profile preflight, the selected Nova 2 Lite profile, scoped runtime IAM, and explicit `maxTokens`.
 - Model access is explicitly checked for both generator and evaluator models in the chosen Region.
 - Data residency is explicit: no accidental cross-region replication, unmanaged CloudWatch retention, or public artifact pipeline for sensitive outputs.
 - No Calendar or Slack writes exist in V1.
 - GitHub/project Q&A cites public sources and says "I don't know" when unsupported.
+- Prompt-stuffed public sources are sanitized, delimited as facts, capped at 50 KB by default, and verified to keep cold-start source-loading impact under 3 seconds.
 - The canonical container-orchestration question returns `aws-devops-lab` and `airgap-aiops` with caveats.
 - The design separates model, RAG, agent, and custom harness lanes while keeping one live specimen.
 - No live AWS identifiers, private examples, raw traces, real emails, Slack IDs, calendar IDs, private hostnames, or secrets are present.
@@ -243,7 +249,7 @@ Most eval systems fail because the app was never instrumented for evaluation, or
 - Treating the public chatbot as a demo while the eval plan studies a different synthetic app.
 - Skipping privacy design until traces contain visitor content.
 - Forgetting that model invocation logging captures the raw model I/O you actually need for eval debugging, while still treating its S3 destination as lab artifact storage rather than public repo material.
-- Starting dataset work before you know which Region, KMS keys, service roles, model access grants, quotas, and retention policies will govern the data.
+- Starting dataset work before you know which Region, KMS keys, service roles, model access grants, model/profile ARNs, quotas, and retention policies will govern the data.
 - Leaking private memory or private repo context into public answers because it "helps" the assistant sound useful.
 - Treating synthetic datasets as automatically harmless; synthetic prompts can still reveal business logic, security posture, or operational abuse patterns.
 - Promising reproducible runs without pinning model/judge versions or admitting that hosted models may not reproduce token-for-token.
@@ -305,10 +311,11 @@ AWS eval jobs are schema-sensitive, and public evidence bots are claim-sensitive
 - Valid datasets pass locally.
 - Invalid fixtures fail locally with clear messages.
 - JSONL remains line-delimited, not a giant JSON array.
-- Dataset examples use only synthetic or explicitly public-safe content.
-- Citation/evidence schemas reject nonexistent source labels, missing citations for material claims, and unsupported evidence-strength upgrades.
+- Dataset examples use only synthetic or explicitly public-safe content, with license/provenance recorded for any non-synthetic source-derived fixture.
+- Citation/evidence schemas reject nonexistent source labels, missing citations for material claims, unsupported evidence-strength upgrades, and missing `referenceResponse` values for golden prompts.
 - Prompt-injection examples are inert canary cases, not working payloads.
-- Schemas carry a version, and golden fixtures pin expected pass/fail outcomes.
+- Schemas carry a version, and golden fixtures pin expected pass/fail outcomes plus reference responses where deterministic or judge-based scoring needs ground truth.
+- Dataset licensing/provenance is documented: synthetic fixtures derived from `content/profile.md` are public repo artifacts; any future public-README-derived fixture records source and license.
 
 ### Public-safe artifacts to commit
 
@@ -355,7 +362,7 @@ You cannot debug what you did not capture. Eval quality depends on trace quality
 
 ### Build tasks
 
-1. Enable Bedrock invocation logging for lab/eval runs to same-Region S3, using a placeholder bucket layout:
+1. Enable Bedrock invocation logging for lab/eval runs to same-Region S3 only, with KMS encryption, text delivery enabled, non-text modalities disabled for V1, lifecycle expiration, and a placeholder bucket layout:
    - `s3://example-eval-bucket/bedrock-invocation-logs/`;
    - `s3://example-eval-bucket/eval-runs/<run_id>/raw/`;
    - `s3://example-eval-bucket/eval-runs/<run_id>/normalized/`;
@@ -395,7 +402,7 @@ You cannot debug what you did not capture. Eval quality depends on trace quality
    - Bedrock invocation logging is enabled for lab/eval runs;
    - raw invocation logs are useful eval artifacts, not public report material;
    - same-Region S3 destination, run-prefix layout, lifecycle expiration, and access boundaries;
-   - how the logging destination inherits prompt/response sensitivity (KMS-encrypt it, lock IAM, bound retention, keep it out of public artifact pipelines);
+   - how the logging destination inherits prompt/response sensitivity (KMS-encrypt it, lock IAM, bound retention, keep it out of public artifact pipelines, and avoid CloudWatch delivery for raw model I/O);
    - CloudWatch/S3/Athena query plan;
    - how normalized trace exports and invocation-log-derived BYOI datasets feed Bedrock/RAG/AgentCore/Inspect eval lanes.
 6. Add sample CloudWatch Logs Insights and Athena queries as documentation, using placeholders only.
@@ -408,6 +415,7 @@ You cannot debug what you did not capture. Eval quality depends on trace quality
 - Evidence traces show source labels, citations, and evidence-strength labels.
 - RAG/app traces contain citations for supported answers and refusal/"I don't know" outcomes for unsupported questions.
 - Bedrock invocation logs can be correlated to app-level eval records by run ID or request metadata.
+- Invocation logging uses S3-only delivery for raw model I/O; CloudWatch contains structured app events, not full prompts/responses.
 - Agent traces keep OpenTelemetry/OpenInference compatibility; local JSON schemas describe sanitized exports, not a replacement telemetry standard.
 - You can answer: "What failed, how often, and where is the evidence?"
 
@@ -424,7 +432,7 @@ You cannot debug what you did not capture. Eval quality depends on trace quality
 - Committing raw production traces because they are "just examples."
 - Assuming model invocation logging replaces app-level eval traces or covers every possible Bedrock endpoint.
 - Designing a custom agent trace schema first and then trying to map it back to AgentCore after the fact.
-- Treating the invocation-logging destination as plumbing when it actually holds full prompts and responses — a sensitive store that needs the same controls as the data itself.
+- Treating the invocation-logging destination as plumbing when it actually holds full prompts and responses — a sensitive lab artifact store that needs KMS, lifecycle, least-privilege access, and separation from CloudWatch app logs.
 - Failing to record inference parameters, making reruns non-reproducible.
 
 ### Stretch goals
@@ -459,8 +467,9 @@ Managed eval jobs are useful, but only when you understand their schemas, job bo
    - from normalized candidate-agent trace exports and lab Bedrock invocation logs;
    - to Bedrock model evaluation JSONL.
 2. Create a BYOI model evaluation adapter:
-   - one model response per prompt;
-   - one model identifier per job;
+   - one `modelResponses` entry per prompt;
+   - one `modelIdentifier` value per job;
+   - AWS-documented BYOI fields: `prompt`, optional `referenceResponse`, optional `category`, and `modelResponses[].response`/`modelResponses[].modelIdentifier`;
    - evidence that Bedrock skips model invocation for supplied `modelResponses`;
    - support for importing captured chatbot answers from Bedrock invocation logs and app traces as BYOI responses;
    - a native Bedrock comparison/reporting plan first, with separate manifests only where the selected API/BYOI path requires separate jobs.
@@ -474,7 +483,7 @@ Managed eval jobs are useful, but only when you understand their schemas, job bo
 
 ### Validation checks
 
-- Adapter output validates locally.
+- Adapter output validates locally against the AWS-documented BYOI shape, including `prompt`, `referenceResponse`, `category`, and `modelResponses`.
 - Job templates contain placeholders, not real account details.
 - Candidate-agent examples are scoped to supported intents; raw captured outputs stay in lab S3 and normalized/public examples are safe to commit.
 - Multi-model or multi-config comparison starts with Bedrock-native reports/comparison where supported; any extra manifests explain why custom coordination is needed.
@@ -491,7 +500,7 @@ Managed eval jobs are useful, but only when you understand their schemas, job bo
 - Overclaiming that Bedrock model eval jobs are a universal benchmark runner.
 - Ignoring prompt count limits.
 - Forgetting that judge models and rubrics are versioned dependencies.
-- Forgetting that evaluator-model and metric availability vary by region, and that every job bills real tokens — bound dataset size, check quotas, and estimate cost before submission.
+- Forgetting that evaluator-model and metric availability vary by region, and that every job bills real tokens — bound dataset size, check `ListFoundationModels`/model access/quotas, and estimate cost before submission.
 
 ### Stretch goals
 
@@ -539,6 +548,8 @@ A judge prompt is production logic. Treat it like code, not a magic incantation.
    - expected failure labels.
 4. Write a judge validation notebook or script:
    - judge-vs-human agreement;
+   - at least 3 repeated runs of the same prompt set to measure score variance;
+   - high-variance cases flagged for human review;
    - inter-rater agreement beyond raw accuracy (e.g. Cohen's kappa), so chance agreement does not flatter the judge;
    - confusion matrix;
    - false positives/false negatives;
