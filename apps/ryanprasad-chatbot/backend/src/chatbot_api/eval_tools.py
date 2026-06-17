@@ -123,11 +123,31 @@ def _contains_required_phrase(answer: str, phrase: str) -> bool:
         return True
     if phrase == "not supported" and "does not support" in answer:
         return True
+    if phrase == "not supported" and "does not have" in answer:
+        return True
+    if phrase == "not supported" and "is not supported" in answer:
+        return True
     if phrase == "not supported" and "no evidence" in answer:
+        return True
+    if phrase == "public evidence" and "provided evidence" in answer:
+        return True
+    if phrase == "public evidence" and "available public evidence" in answer:
         return True
     if phrase == "public evidence" and "public facts" in answer:
         return True
+    if phrase == "public source" and "provided evidence" in answer:
+        return True
+    if phrase == "public source" and "public evidence" in answer:
+        return True
     if phrase == "public source" and "public facts" in answer:
+        return True
+    if phrase == "public-project" and "public project" in answer:
+        return True
+    if phrase == "public-project" and "public-project" in answer:
+        return True
+    if phrase == "public-project" and "public projects" in answer:
+        return True
+    if phrase == "boundaries" and "boundary" in answer:
         return True
     return False
 
@@ -139,6 +159,14 @@ def _contains_unnegated_forbidden_phrase(answer: str, phrase: str) -> bool:
     prefix = answer[max(0, start - 80):start]
     negators = (
         "not ",
+        "than ",
+        "rather than",
+        "instead of",
+        "cannot ",
+        "can't ",
+        "can not ",
+        "should not",
+        "must not",
         "does not support",
         "do not support",
         "not support",

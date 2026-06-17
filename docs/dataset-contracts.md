@@ -107,4 +107,6 @@ python3 -m unittest tests.test_validate_dataset -v
 - `datasets/synthetic/recruiter-evidence-qa.jsonl` — legacy/native deterministic rows for supported recruiter questions, unsupported overclaims, private-source refusals, inert prompt-injection canaries, and rate-limit/off-topic boundaries.
 - `datasets/synthetic/candidate-chat-turns.jsonl` — richer source-of-truth chat-turn rows for the same lanes, including a multi-turn repeated-question case for future live replay.
 
+Week 2 closeout: the expanded synthetic dataset validates locally, the live chatbot capture returns valid responses for all rows, deterministic live scoring passes for all rows, and the captured answers export into valid Bedrock model-eval BYOI JSONL. Bedrock Evaluation jobs are a later execution step; this week validated the input lane and hard gates.
+
 The schema validator is the bouncer. The deterministic scorer is the referee. Bedrock judges come later, once the club is not full of raccoons with fake IDs.

@@ -61,7 +61,7 @@ python3 scripts/validate_dataset.py \
   --input /tmp/week2-live-byoi-YYYYMMDDTHHMMSSZ/bedrock-model-eval-byoi.jsonl
 ```
 
-A BYOI export can be valid even when deterministic scoring found failures. That is useful for judge calibration, but it is not a clean regression pass until the deterministic failures are triaged.
+A BYOI export can be valid even when deterministic scoring found failures. That is useful for judge calibration, but it is not a clean regression pass until the deterministic failures are triaged. The Week 2 closeout rerun produced a clean live deterministic pass before regenerating the BYOI JSONL.
 
 ## BYOI regression batch
 

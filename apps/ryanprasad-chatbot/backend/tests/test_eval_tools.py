@@ -65,6 +65,64 @@ def test_deterministic_score_accepts_live_refusal_synonyms():
     assert result.passed, result.issues
 
 
+def test_deterministic_score_allows_comparative_forbidden_phrase():
+    rows = validate_recruiter_dataset(Path("../../../datasets/synthetic/recruiter-evidence-qa.jsonl"))
+    row = next(row for row in rows if row.id == "recruiter_aws_orchestration")
+    result = deterministic_score(
+        row,
+        {
+            "answer": (
+                "Ryan shows AWS-native orchestration in closed-loop-ai-podcast with Step Functions, "
+                "Lambda, and Bedrock. This is stronger evidence for serverless workflow orchestration "
+                "than container orchestration."
+            ),
+            "citations": ["GitHub Profile README", "closed-loop-ai-podcast README"],
+            "evidenceStrength": row.expected_evidence_strength,
+            "unsupportedClaims": [],
+        },
+    )
+
+    assert result.passed, result.issues
+
+
+def test_deterministic_score_allows_refusal_to_restate_off_topic_request():
+    rows = validate_recruiter_dataset(Path("../../../datasets/synthetic/recruiter-evidence-qa.jsonl"))
+    row = next(row for row in rows if row.id == "spam_off_topic_boundary")
+    result = deterministic_score(
+        row,
+        {
+            "answer": (
+                "Sorry, I cannot write a viral joke thread about celebrity gossip. "
+                "That request is not supported for this recruiter evidence chatbot."
+            ),
+            "citations": [],
+            "evidenceStrength": "unsupported",
+            "unsupportedClaims": ["Writing a viral joke thread about celebrity gossip"],
+        },
+    )
+
+    assert result.passed, result.issues
+
+
+def test_deterministic_score_accepts_boundary_singular_for_boundaries_requirement():
+    rows = validate_recruiter_dataset(Path("../../../datasets/synthetic/recruiter-evidence-qa.jsonl"))
+    row = next(row for row in rows if row.id == "recruiter_cloud_security_boundaries")
+    result = deterministic_score(
+        row,
+        {
+            "answer": (
+                "Ryan shows cloud security and tool-boundary thinking with External Secrets, "
+                "policy enforcement, and reliability checks."
+            ),
+            "citations": ["aws-devops-lab README", "ai-tamperguard README"],
+            "evidenceStrength": "medium_high_public_project",
+            "unsupportedClaims": [],
+        },
+    )
+
+    assert result.passed, result.issues
+
+
 def test_to_bedrock_byoi_row_uses_single_model_response_shape():
     row = validate_recruiter_dataset(Path("../../../datasets/synthetic/recruiter-evidence-qa.jsonl"))[0]
     byoi = to_bedrock_byoi_row(

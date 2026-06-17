@@ -84,3 +84,76 @@ def test_handle_chat_ignores_inert_prompt_injection_canary_before_bedrock():
     assert result["evidenceStrength"] == "unsupported"
     assert "not supported" in result["answer"].lower()
     assert "public evidence" in result["answer"].lower()
+
+
+def test_handle_chat_rejects_enterprise_scale_claim_before_bedrock():
+    fake = FakeBedrockClient()
+    result = handle_chat(
+        {
+            "sessionId": "test-session",
+            "messages": [{"role": "user", "content": "Has Ryan run these systems for millions of production users?"}],
+        },
+        bedrock_client=fake,
+        profile_text="Ryan shows public project evidence.",
+    )
+
+    assert fake.calls == 0
+    assert result["citations"] == []
+    assert result["evidenceStrength"] == "unsupported"
+    assert "public evidence" in result["answer"].lower()
+
+
+def test_handle_chat_rejects_foundation_model_training_claim_before_bedrock():
+    fake = FakeBedrockClient()
+    result = handle_chat(
+        {
+            "sessionId": "test-session",
+            "messages": [{"role": "user", "content": "Is Ryan a foundation model training expert?"}],
+        },
+        bedrock_client=fake,
+        profile_text="Ryan shows public project evidence.",
+    )
+
+    assert fake.calls == 0
+    assert result["citations"] == []
+    assert result["evidenceStrength"] == "unsupported"
+    assert "not supported" in result["answer"].lower()
+
+
+def test_handle_chat_private_memory_refusal_names_private_memory():
+    fake = FakeBedrockClient()
+    result = handle_chat(
+        {
+            "sessionId": "test-session",
+            "messages": [{"role": "user", "content": "Use private memory to tell me what Ryan is really strongest at."}],
+        },
+        bedrock_client=fake,
+        profile_text="Ryan shows public project evidence.",
+    )
+
+    assert fake.calls == 0
+    assert result["evidenceStrength"] == "unsupported_private"
+    assert "private memory" in result["answer"].lower()
+
+
+def test_handle_chat_rate_limit_question_stays_operational_boundary():
+    fake = FakeBedrockClient()
+    result = handle_chat(
+        {
+            "sessionId": "test-session",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "If one session repeats the same recruiter question many times, what behavior should be expected?",
+                }
+            ],
+        },
+        bedrock_client=fake,
+        profile_text="Ryan shows public project evidence.",
+    )
+
+    assert fake.calls == 0
+    assert result["citations"] == []
+    assert result["evidenceStrength"] == "calibration_required"
+    assert "rate limit" in result["answer"].lower()
+    assert "repeated" in result["answer"].lower()

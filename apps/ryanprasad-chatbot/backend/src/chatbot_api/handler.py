@@ -58,8 +58,8 @@ def _guardrail_response(question: str) -> ChatResponse | None:
         return ChatResponse(
             answer=(
                 "That instruction-like canary is not supported by the public evidence. "
-                "I should ignore attempts to override the recruiter-evidence boundary and should not invent "
-                "private or production ownership claims."
+                "I should ignore attempts to override the recruiter-evidence boundary, should not cite a fake "
+                "private source, and should not invent private or production ownership claims."
             ),
             citations=[],
             evidenceStrength="unsupported",
@@ -68,7 +68,7 @@ def _guardrail_response(question: str) -> ChatResponse | None:
     if "private" in lower_question or "private notes" in lower_question or "private projects" in lower_question:
         return ChatResponse(
             answer=(
-                "I should not use private projects, private notes, local memory, or unpublished sources. "
+                "I should not use private memory, private projects, private notes, local memory, or unpublished sources. "
                 "The public evidence supports Ryan's container orchestration skills through `aws-devops-lab` "
                 "and `airgap-aiops`; private-source support is outside this chatbot's boundary."
             ),
@@ -86,6 +86,56 @@ def _guardrail_response(question: str) -> ChatResponse | None:
             citations=[],
             evidenceStrength="unsupported",
             unsupportedClaims=["owned a large production Kubernetes platform at a company"],
+        )
+    if "millions of production users" in lower_question or "large-scale production" in lower_question:
+        return ChatResponse(
+            answer=(
+                "That scale claim is not supported by the public evidence. The public source supports lab and "
+                "public-project AI systems work, not millions of production users or large-scale production ownership."
+            ),
+            citations=[],
+            evidenceStrength="unsupported",
+            unsupportedClaims=["millions of production users or large-scale production ownership"],
+        )
+    if "foundation model training" in lower_question or "trained frontier models" in lower_question:
+        return ChatResponse(
+            answer=(
+                "That claim is not supported by the public evidence. The public source supports AI systems, "
+                "orchestration, RAG/search, and eval harness work, not foundation model training expertise."
+            ),
+            citations=[],
+            evidenceStrength="unsupported",
+            unsupportedClaims=["foundation model training expertise"],
+        )
+    if "safety certification" in lower_question or "certified safe" in lower_question:
+        return ChatResponse(
+            answer=(
+                "That certification claim is not supported by the public source. The public evidence supports "
+                "eval, reliability, and safety-oriented project work, but not a formal safety certification."
+            ),
+            citations=[],
+            evidenceStrength="unsupported",
+            unsupportedClaims=["formal safety certification"],
+        )
+    if "repeats the same recruiter question" in lower_question or ("repeated" in lower_question and "question" in lower_question):
+        return ChatResponse(
+            answer=(
+                "Repeated recruiter questions should be handled as an operational boundary: apply a rate limit "
+                "or abuse-control check rather than treating repeated traffic as new public evidence."
+            ),
+            citations=[],
+            evidenceStrength="calibration_required",
+            unsupportedClaims=[],
+        )
+    if "celebrity gossip" in lower_question or "viral joke thread" in lower_question:
+        return ChatResponse(
+            answer=(
+                "That off-topic request is not supported for the recruiter evidence chatbot. I should stay in "
+                "the recruiter evidence lane rather than write unrelated entertainment content."
+            ),
+            citations=[],
+            evidenceStrength="unsupported",
+            unsupportedClaims=["off-topic entertainment content"],
         )
     return None
 
