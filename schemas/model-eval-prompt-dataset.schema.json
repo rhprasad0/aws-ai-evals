@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ryans-lab.click/schemas/model-eval-prompt-dataset.schema.json",
+  "title": "Bedrock Model Evaluation Prompt Row",
+  "description": "One JSONL row for an Amazon Bedrock model-as-judge evaluation where Bedrock invokes the model under test.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "prompt", "referenceResponse", "category"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "bedrock-model-eval-prompt/v1"
+    },
+    "prompt": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20000
+    },
+    "referenceResponse": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20000
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    }
+  }
+}

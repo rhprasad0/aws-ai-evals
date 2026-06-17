@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ryans-lab.click/schemas/evidence-strength.schema.json",
+  "title": "Candidate Evidence Strength Label",
+  "description": "Closed set of calibrated support labels used by the candidate-evidence chatbot and deterministic evals.",
+  "type": "string",
+  "enum": [
+    "high_public_project",
+    "medium_high_public_project",
+    "medium_high_lab_project",
+    "calibration_required",
+    "weak_support",
+    "unsupported",
+    "unsupported_private"
+  ]
+}

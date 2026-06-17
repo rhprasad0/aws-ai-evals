@@ -1,24 +1,32 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ryans-lab.click/schemas/run-manifest.schema.json",
   "title": "Candidate Chatbot Eval Run Manifest",
+  "description": "Reproducibility record for local, live, or Bedrock-backed candidate-chatbot eval runs.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["run_id", "region", "model_id", "dataset", "source_version", "preflight"],
+  "required": ["schema_version", "run_id", "region", "model_id", "dataset", "source_version", "preflight"],
   "properties": {
-    "run_id": {"type": "string", "minLength": 1},
-    "region": {"type": "string", "minLength": 1},
-    "model_id": {"type": "string", "minLength": 1},
-    "dataset": {"type": "string", "minLength": 1},
-    "source_version": {"type": "string", "minLength": 1},
+    "schema_version": {"type": "string", "const": "candidate-eval-run-manifest/v1"},
+    "run_id": {"type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{2,160}$"},
+    "region": {"type": "string", "pattern": "^[a-z]{2}-[a-z]+-[0-9]+$"},
+    "model_id": {"type": "string", "minLength": 1, "maxLength": 200},
+    "dataset": {"type": "string", "minLength": 1, "maxLength": 500},
+    "source_version": {"type": "string", "minLength": 1, "maxLength": 500},
+    "git_revision": {"type": "string", "pattern": "^[a-f0-9]{7,40}$"},
+    "eval_lane": {
+      "type": "string",
+      "enum": ["deterministic", "bedrock_model_eval_byoi", "bedrock_rag_retrieve_generate_byoi", "bedrock_rag_retrieval_only_byoi", "live_endpoint_smoke"]
+    },
     "preflight": {
       "type": "object",
       "additionalProperties": false,
       "required": ["list_foundation_models", "list_inference_profiles", "get_inference_profile", "converse_smoke"],
       "properties": {
-        "list_foundation_models": {"type": "string"},
-        "list_inference_profiles": {"type": "string"},
-        "get_inference_profile": {"type": "string"},
-        "converse_smoke": {"type": "string"}
+        "list_foundation_models": {"type": "string", "enum": ["pass", "fail", "not_run"]},
+        "list_inference_profiles": {"type": "string", "enum": ["pass", "fail", "not_run"]},
+        "get_inference_profile": {"type": "string", "enum": ["pass", "fail", "not_run"]},
+        "converse_smoke": {"type": "string", "enum": ["pass", "fail", "not_run"]}
       }
     }
   }

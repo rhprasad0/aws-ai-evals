@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ryans-lab.click/schemas/refusal-outcome.schema.json",
+  "title": "Candidate Evidence Refusal Outcome",
+  "description": "Structured refusal/escalation labels for unsupported, private-source, off-scope, and policy-boundary chatbot cases.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "outcome", "reason", "safe_to_answer"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "candidate-refusal-outcome/v1"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "answered_from_public_evidence",
+        "unsupported_public_claim",
+        "unsupported_private_source",
+        "off_scope",
+        "prompt_injection_ignored",
+        "rate_limited",
+        "needs_human_review"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "safe_to_answer": {
+      "type": "boolean"
+    },
+    "allowed_next_action": {
+      "type": "string",
+      "enum": ["answer", "refuse", "ask_clarifying_question", "rate_limit", "escalate"]
+    }
+  }
+}

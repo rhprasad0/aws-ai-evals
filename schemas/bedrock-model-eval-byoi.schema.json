@@ -1,15 +1,22 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ryans-lab.click/schemas/bedrock-model-eval-byoi.schema.json",
   "title": "Bedrock Model Evaluation BYOI Row",
+  "description": "One JSONL row for an Amazon Bedrock model-as-judge evaluation where pre-generated model responses are supplied by the app/harness.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["prompt", "modelResponses"],
+  "required": ["schema_version", "prompt", "referenceResponse", "category", "modelResponses"],
   "properties": {
-    "prompt": {"type": "string", "minLength": 1},
-    "referenceResponse": {"type": "string"},
-    "category": {"type": "string"},
+    "schema_version": {
+      "type": "string",
+      "const": "bedrock-model-eval-byoi/v1"
+    },
+    "prompt": {"type": "string", "minLength": 1, "maxLength": 20000},
+    "referenceResponse": {"type": "string", "minLength": 1, "maxLength": 20000},
+    "category": {"type": "string", "minLength": 1, "maxLength": 120},
     "modelResponses": {
       "type": "array",
+      "description": "Bedrock model-as-judge BYOI supports exactly one supplied response per prompt.",
       "minItems": 1,
       "maxItems": 1,
       "items": {
@@ -17,8 +24,8 @@
         "additionalProperties": false,
         "required": ["response", "modelIdentifier"],
         "properties": {
-          "response": {"type": "string", "minLength": 1},
-          "modelIdentifier": {"type": "string", "minLength": 1}
+          "response": {"type": "string", "minLength": 1, "maxLength": 30000},
+          "modelIdentifier": {"type": "string", "minLength": 1, "maxLength": 200}
         }
       }
     }

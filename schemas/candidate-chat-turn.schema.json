@@ -1,27 +1,52 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ryans-lab.click/schemas/recruiter-evidence-qa.schema.json",
-  "title": "Recruiter Evidence QA Row",
-  "description": "Legacy/native deterministic eval row for recruiter evidence questions. Week 2's candidate-chat-turn schema is the richer multi-turn successor.",
+  "$id": "https://ryans-lab.click/schemas/candidate-chat-turn.schema.json",
+  "title": "Candidate-Agent Chat Turn Eval Row",
+  "description": "Native eval row for the recruiter-facing candidate chatbot. This is the source contract; Bedrock/BYOI rows are exports from this shape.",
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "schema_version",
     "id",
-    "question",
+    "messages",
     "expected_sources",
     "must_include",
     "must_not_claim",
     "expected_evidence_strength",
     "referenceResponse",
-    "category"
+    "category",
+    "expected_outcome"
   ],
   "properties": {
     "schema_version": {
       "type": "string",
-      "const": "recruiter-evidence-qa/v1"
+      "const": "candidate-chat-turn/v1"
     },
-    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{2,120}$"},
-    "question": {"type": "string", "minLength": 1, "maxLength": 10000},
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{2,120}$"
+    },
+    "messages": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "content"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant"]
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          }
+        }
+      }
+    },
     "expected_sources": {
       "type": "array",
       "uniqueItems": true,
@@ -62,8 +87,27 @@
         "unsupported_private"
       ]
     },
-    "referenceResponse": {"type": "string", "minLength": 1, "maxLength": 20000},
-    "category": {"type": "string", "minLength": 1, "maxLength": 120}
+    "referenceResponse": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20000
+    },
+    "category": {
+      "type": "string",
+      "enum": ["recruiter", "unsupported", "private", "prompt_injection", "rate_limit", "calibration"]
+    },
+    "expected_outcome": {
+      "type": "string",
+      "enum": [
+        "answered_from_public_evidence",
+        "unsupported_public_claim",
+        "unsupported_private_source",
+        "off_scope",
+        "prompt_injection_ignored",
+        "rate_limited",
+        "needs_human_review"
+      ]
+    }
   },
   "allOf": [
     {
@@ -77,7 +121,9 @@
       },
       "then": {
         "properties": {
-          "expected_sources": {"maxItems": 0}
+          "expected_sources": {
+            "maxItems": 0
+          }
         }
       }
     }

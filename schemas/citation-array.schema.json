@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ryans-lab.click/schemas/citation-array.schema.json",
+  "title": "Candidate Evidence Citation Array",
+  "description": "Allowed public source labels for candidate-evidence chatbot outputs and eval fixtures.",
+  "type": "array",
+  "uniqueItems": true,
+  "items": {
+    "type": "string",
+    "enum": [
+      "content/profile.md",
+      "GitHub Profile README",
+      "aws-devops-lab README",
+      "airgap-aiops README",
+      "agent2agent-guestbook README",
+      "closed-loop-ai-podcast README",
+      "aws-ai-evals README",
+      "ai-tamperguard README",
+      "policy-bonfire-2 README"
+    ]
+  }
+}
