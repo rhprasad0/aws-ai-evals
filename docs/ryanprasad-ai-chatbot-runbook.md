@@ -23,7 +23,8 @@ CloudFront custom domains require an ACM certificate in `us-east-1`; Terraform r
 ```bash
 cd apps/ryanprasad-chatbot/backend && uv run pytest -q
 cd apps/ryanprasad-chatbot/frontend && npm run build
-python3 scripts/validate_recruiter_evidence_dataset.py --input datasets/synthetic/recruiter-evidence-qa.jsonl --schema schemas/recruiter-evidence-qa.schema.json
+python3 scripts/validate_dataset.py --input datasets/synthetic/recruiter-evidence-qa.jsonl --schema schemas/recruiter-evidence-qa.schema.json
+python3 -m unittest tests.test_validate_dataset -v
 python3 scripts/run_candidate_chatbot_eval.py --dataset datasets/synthetic/recruiter-evidence-qa.jsonl --mode deterministic --fail-on citation,overclaim,private-source,refusal
 terraform -chdir=infra/terraform/ryanprasad-chatbot fmt -check
 terraform -chdir=infra/terraform/ryanprasad-chatbot validate

@@ -4,7 +4,16 @@ The chatbot is the specimen; the eval harness is the learning artifact.
 
 ## Deterministic gate
 
-Run before deploy:
+Run schema validation before scoring:
+
+```bash
+python3 scripts/validate_dataset.py \
+  --schema schemas/recruiter-evidence-qa.schema.json \
+  --input datasets/synthetic/recruiter-evidence-qa.jsonl
+python3 -m unittest tests.test_validate_dataset -v
+```
+
+Then run the deterministic content gate before deploy:
 
 ```bash
 python3 scripts/run_candidate_chatbot_eval.py \
