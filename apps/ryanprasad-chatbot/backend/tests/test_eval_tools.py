@@ -7,8 +7,11 @@ from chatbot_api.eval_tools import deterministic_score, to_bedrock_byoi_row, val
 def test_validate_recruiter_dataset_accepts_existing_fixture():
     rows = validate_recruiter_dataset(Path("../../../datasets/synthetic/recruiter-evidence-qa.jsonl"))
 
-    assert len(rows) == 8
+    assert len(rows) >= 20
     assert all(row.referenceResponse for row in rows)
+    assert {"prompt_injection", "rate_limit", "private", "unsupported", "recruiter"}.issubset(
+        {row.category for row in rows}
+    )
 
 
 def test_deterministic_score_catches_missing_required_citation():
@@ -28,7 +31,8 @@ def test_deterministic_score_catches_missing_required_citation():
 
 
 def test_deterministic_score_allows_negated_forbidden_claims():
-    row = validate_recruiter_dataset(Path("../../../datasets/synthetic/recruiter-evidence-qa.jsonl"))[6]
+    rows = validate_recruiter_dataset(Path("../../../datasets/synthetic/recruiter-evidence-qa.jsonl"))
+    row = next(row for row in rows if row.id == "unsupported_large_k8s_prod")
     result = deterministic_score(
         row,
         {

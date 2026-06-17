@@ -102,4 +102,9 @@ python3 -m unittest tests.test_validate_dataset -v
 4. Export clean captured answers into Bedrock model-eval BYOI rows.
 5. Export retrieved/public-source snippets into RAG BYOI rows only when doing grounded-answer compatibility work.
 
+## Current synthetic datasets
+
+- `datasets/synthetic/recruiter-evidence-qa.jsonl` — legacy/native deterministic rows for supported recruiter questions, unsupported overclaims, private-source refusals, inert prompt-injection canaries, and rate-limit/off-topic boundaries.
+- `datasets/synthetic/candidate-chat-turns.jsonl` — richer source-of-truth chat-turn rows for the same lanes, including a multi-turn repeated-question case for future live replay.
+
 The schema validator is the bouncer. The deterministic scorer is the referee. Bedrock judges come later, once the club is not full of raccoons with fake IDs.
