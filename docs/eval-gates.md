@@ -30,6 +30,21 @@ The deterministic gate checks:
 - forbidden production-ownership upgrades are not asserted;
 - unsupported/private-source questions refuse or say the public source does not support the claim.
 
+## Live/local response capture
+
+Use the capture gate to replay dataset rows against a live or local `/api/chat` endpoint, validate each response through the backend response contract, and run deterministic scoring on the captured output:
+
+```bash
+python3 scripts/capture_candidate_chatbot_responses.py \
+  --endpoint https://chat.ryans-lab.click/api/chat \
+  --output /tmp/candidate-chatbot-live-capture.jsonl \
+  --ids recruiter_container_orchestration,unsupported_large_k8s_prod,private_sources_refusal \
+  --fail-on-request \
+  --fail-on-score
+```
+
+Keep capture outputs in `/tmp`, `results/`, or another ignored lab path unless they have been reviewed and promoted as public-safe receipts.
+
 ## BYOI regression batch
 
 Use captured chatbot answers to build Bedrock model-as-judge BYOI rows:

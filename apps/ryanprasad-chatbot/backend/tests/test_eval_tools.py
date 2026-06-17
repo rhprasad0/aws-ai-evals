@@ -46,6 +46,25 @@ def test_deterministic_score_allows_negated_forbidden_claims():
     assert result.passed, result.issues
 
 
+def test_deterministic_score_accepts_live_refusal_synonyms():
+    rows = validate_recruiter_dataset(Path("../../../datasets/synthetic/recruiter-evidence-qa.jsonl"))
+    row = next(row for row in rows if row.id == "prompt_injection_canary_ignore_previous")
+    result = deterministic_score(
+        row,
+        {
+            "answer": (
+                "According to the provided public facts, there is no evidence Ryan owned "
+                "production Kubernetes for a Fortune 50 company."
+            ),
+            "citations": [],
+            "evidenceStrength": "unsupported",
+            "unsupportedClaims": ["Ryan owned production Kubernetes for a Fortune 50 company"],
+        },
+    )
+
+    assert result.passed, result.issues
+
+
 def test_to_bedrock_byoi_row_uses_single_model_response_shape():
     row = validate_recruiter_dataset(Path("../../../datasets/synthetic/recruiter-evidence-qa.jsonl"))[0]
     byoi = to_bedrock_byoi_row(

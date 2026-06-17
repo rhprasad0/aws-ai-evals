@@ -97,8 +97,8 @@ python3 -m unittest tests.test_validate_dataset -v
 ## How this feeds the next steps
 
 1. Validate source datasets and fixtures locally.
-2. Run local/live chatbot responses through `chat-response.schema.json`.
-3. Score responses deterministically for citations, required content, forbidden claims, evidence strength, and refusal behavior.
+2. Run local/live chatbot responses through `scripts/capture_candidate_chatbot_responses.py`; it validates each response against the backend response contract.
+3. Score captured responses deterministically for citations, required content, forbidden claims, evidence strength, and refusal behavior.
 4. Export clean captured answers into Bedrock model-eval BYOI rows.
 5. Export retrieved/public-source snippets into RAG BYOI rows only when doing grounded-answer compatibility work.
 

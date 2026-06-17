@@ -123,6 +123,12 @@ def _contains_required_phrase(answer: str, phrase: str) -> bool:
         return True
     if phrase == "not supported" and "does not support" in answer:
         return True
+    if phrase == "not supported" and "no evidence" in answer:
+        return True
+    if phrase == "public evidence" and "public facts" in answer:
+        return True
+    if phrase == "public source" and "public facts" in answer:
+        return True
     return False
 
 

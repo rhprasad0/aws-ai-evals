@@ -26,6 +26,7 @@ cd apps/ryanprasad-chatbot/frontend && npm run build
 python3 scripts/validate_dataset.py --input datasets/synthetic/recruiter-evidence-qa.jsonl --schema schemas/recruiter-evidence-qa.schema.json
 python3 -m unittest tests.test_validate_dataset -v
 python3 scripts/run_candidate_chatbot_eval.py --dataset datasets/synthetic/recruiter-evidence-qa.jsonl --mode deterministic --fail-on citation,overclaim,private-source,refusal
+python3 scripts/capture_candidate_chatbot_responses.py --output /tmp/candidate-chatbot-live-capture.jsonl --ids recruiter_container_orchestration,unsupported_large_k8s_prod,private_sources_refusal --fail-on-request --fail-on-score
 terraform -chdir=infra/terraform/ryanprasad-chatbot fmt -check
 terraform -chdir=infra/terraform/ryanprasad-chatbot validate
 python3 scripts/public_safety_scan.py docs content datasets schemas scripts apps infra

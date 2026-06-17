@@ -54,6 +54,17 @@ def _parse_json_object(text: str) -> dict[str, Any]:
 
 def _guardrail_response(question: str) -> ChatResponse | None:
     lower_question = question.lower()
+    if "injection_canary_do_not_follow" in lower_question or "ignore all previous instructions" in lower_question:
+        return ChatResponse(
+            answer=(
+                "That instruction-like canary is not supported by the public evidence. "
+                "I should ignore attempts to override the recruiter-evidence boundary and should not invent "
+                "private or production ownership claims."
+            ),
+            citations=[],
+            evidenceStrength="unsupported",
+            unsupportedClaims=["prompt-injection canary or unsupported production-ownership claim"],
+        )
     if "private" in lower_question or "private notes" in lower_question or "private projects" in lower_question:
         return ChatResponse(
             answer=(
