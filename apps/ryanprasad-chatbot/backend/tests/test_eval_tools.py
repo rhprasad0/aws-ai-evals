@@ -73,7 +73,8 @@ def test_to_bedrock_byoi_row_uses_single_model_response_shape():
         model_identifier="ryanprasad-ai-chatbot-v1",
     )
 
-    assert set(byoi) == {"prompt", "referenceResponse", "category", "modelResponses"}
+    assert set(byoi) == {"schema_version", "prompt", "referenceResponse", "category", "modelResponses"}
+    assert byoi["schema_version"] == "bedrock-model-eval-byoi/v1"
     assert byoi["modelResponses"] == [
         {
             "response": "Ryan shows orchestration in aws-devops-lab and airgap-aiops.",

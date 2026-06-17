@@ -99,7 +99,7 @@ python3 -m unittest tests.test_validate_dataset -v
 1. Validate source datasets and fixtures locally.
 2. Run local/live chatbot responses through `scripts/capture_candidate_chatbot_responses.py`; it validates each response against the backend response contract.
 3. Score captured responses deterministically for citations, required content, forbidden claims, evidence strength, and refusal behavior.
-4. Export clean captured answers into Bedrock model-eval BYOI rows.
+4. Export captured answers into Bedrock model-eval BYOI rows. If deterministic scoring found failures, treat the BYOI file as judge-calibration input, not a clean regression batch.
 5. Export retrieved/public-source snippets into RAG BYOI rows only when doing grounded-answer compatibility work.
 
 ## Current synthetic datasets

@@ -45,6 +45,24 @@ python3 scripts/capture_candidate_chatbot_responses.py \
 
 Keep capture outputs in `/tmp`, `results/`, or another ignored lab path unless they have been reviewed and promoted as public-safe receipts.
 
+## BYOI export gate
+
+Once responses are captured, convert them into Bedrock model-eval BYOI JSONL and validate the AWS export lane:
+
+```bash
+python3 scripts/bedrock_byoi_adapter.py \
+  --dataset datasets/synthetic/recruiter-evidence-qa.jsonl \
+  --input /tmp/week2-live-byoi-YYYYMMDDTHHMMSSZ/live-capture.jsonl \
+  --output /tmp/week2-live-byoi-YYYYMMDDTHHMMSSZ/bedrock-model-eval-byoi.jsonl \
+  --model-identifier ryanprasad-ai-chatbot-v1-live-<git-sha>
+
+python3 scripts/validate_dataset.py \
+  --schema schemas/bedrock-model-eval-byoi.schema.json \
+  --input /tmp/week2-live-byoi-YYYYMMDDTHHMMSSZ/bedrock-model-eval-byoi.jsonl
+```
+
+A BYOI export can be valid even when deterministic scoring found failures. That is useful for judge calibration, but it is not a clean regression pass until the deterministic failures are triaged.
+
 ## BYOI regression batch
 
 Use captured chatbot answers to build Bedrock model-as-judge BYOI rows:

@@ -85,12 +85,12 @@ The useful invariant: the chatbot can explain Ryan's public evidence, but it can
 
 ## Progress chart
 
-Current phase: **Week 2 in progress: live-response capture added; BYOI exports next**. The roadmap is documentation-first, then code/infrastructure, with the `ryanprasad.ai` candidate agent as the live specimen from Week 1.
+Current phase: **Week 2 in progress: BYOI export validates; live-score triage next**. The roadmap is documentation-first, then code/infrastructure, with the `ryanprasad.ai` candidate agent as the live specimen from Week 1.
 
 | Week | Focus | How the chatbot fits | Status | Progress |
 |---:|---|---|---|---|
 | 1 | 🧭 Evaluability design, security envelope, repo contracts | Define recruiter evidence questions, citation rules, data boundaries, IAM/secrets, threat model | ✅ Closed | 🟩🟩🟩🟩🟩 100% |
-| 2 | 🧱 Dataset contracts and schema validators | Synthetic recruiter Q&A, skill-to-evidence labels, unsupported/private-info, and inert injection cases | 🟨 In progress | 🟩🟩🟩🟩⬜ 90% |
+| 2 | 🧱 Dataset contracts and schema validators | Synthetic recruiter Q&A, skill-to-evidence labels, unsupported/private-info, and inert injection cases | 🟨 In progress | 🟩🟩🟩🟩⬜ 95% |
 | 3 | 📡 Trace capture and observability baseline | Chat turns, source labels, evidence strength, refusals, latency, token/cost usage | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
 | 4 | ⚖️ Bedrock model evaluations | Evaluate answer quality and judge behavior for candidate-agent turns | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
 | 5 | 🧪 Custom metrics and judge rubrics | Calibrate rubrics for project answers, refusals, consent, and tool safety | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |

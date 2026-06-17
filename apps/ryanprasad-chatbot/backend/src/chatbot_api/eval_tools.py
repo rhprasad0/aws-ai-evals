@@ -153,6 +153,7 @@ def to_bedrock_byoi_row(row: RecruiterEvalRow, *, response: str, model_identifie
     if not model_identifier.strip():
         raise ValueError("model_identifier must be non-empty")
     return {
+        "schema_version": "bedrock-model-eval-byoi/v1",
         "prompt": row.question,
         "referenceResponse": row.referenceResponse,
         "category": row.category,
