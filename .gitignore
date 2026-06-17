@@ -33,3 +33,4 @@ results/
 *.jsonl
 !.github/**/*.jsonl
 !datasets/synthetic/*.jsonl
+!tests/fixtures/**/*.jsonl

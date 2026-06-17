@@ -1,0 +1,15 @@
+{
+  "schema_version": "candidate-eval-run-manifest/v1",
+  "run_id": "fixture-local-contract-run",
+  "region": "us-east-1",
+  "model_id": "us.amazon.nova-2-lite-v1:0",
+  "dataset": "tests/fixtures/datasets/valid/recruiter-evidence-valid.jsonl",
+  "source_version": "content/profile.md",
+  "eval_lane": "deterministic",
+  "preflight": {
+    "list_foundation_models": "not_run",
+    "list_inference_profiles": "not_run",
+    "get_inference_profile": "not_run",
+    "converse_smoke": "not_run"
+  }
+}
