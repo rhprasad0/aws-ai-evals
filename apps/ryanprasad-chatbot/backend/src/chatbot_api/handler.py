@@ -2,14 +2,105 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import Any
 
-from .prompting import build_messages
+from .prompting import PROMPT_TEMPLATE_VERSION, build_messages
 from .response_contract import ChatResponse, ResponseContractError, validate_chat_response
 from .settings import ChatbotSettings
 from .sources import load_profile_source, sanitize_source_text
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+
+def _aws_error_details(exc: Exception) -> dict[str, Any]:
+    response = getattr(exc, "response", None)
+    if not isinstance(response, dict):
+        return {}
+
+    error = response.get("Error")
+    metadata = response.get("ResponseMetadata")
+    details: dict[str, Any] = {}
+    if isinstance(error, dict):
+        code = error.get("Code")
+        if isinstance(code, str):
+            details["aws_error_code"] = code
+    if isinstance(metadata, dict):
+        request_id = metadata.get("RequestId")
+        http_status = metadata.get("HTTPStatusCode")
+        retry_attempts = metadata.get("RetryAttempts")
+        if isinstance(request_id, str):
+            details["aws_request_id"] = request_id
+        if isinstance(http_status, int):
+            details["http_status_code"] = http_status
+        if isinstance(retry_attempts, int):
+            details["retry_attempts"] = retry_attempts
+    return details
+
+
+def _log_bedrock_boundary_error(
+    *,
+    boundary_event: str,
+    exc: Exception,
+    settings: ChatbotSettings,
+    elapsed_ms: int | None = None,
+) -> None:
+    context: dict[str, Any] = {
+        "event": boundary_event,
+        "boundary": "lambda_to_bedrock",
+        "operation": "Converse",
+        "model_id": settings.model_id,
+        "exception_type": type(exc).__name__,
+    }
+    if elapsed_ms is not None:
+        context["elapsed_ms"] = elapsed_ms
+    context.update(_aws_error_details(exc))
+    logger.error("bedrock_boundary_error %s", json.dumps(context, sort_keys=True))
+
+
+def _safe_token_usage(converse_response: dict[str, Any]) -> dict[str, int]:
+    usage = converse_response.get("usage")
+    if not isinstance(usage, dict):
+        return {}
+
+    safe_usage: dict[str, int] = {}
+    for source_key, target_key in (
+        ("inputTokens", "input_tokens"),
+        ("outputTokens", "output_tokens"),
+        ("totalTokens", "total_tokens"),
+    ):
+        value = usage.get(source_key)
+        if isinstance(value, int):
+            safe_usage[target_key] = value
+    return safe_usage
+
+
+def _log_chat_app_event(
+    *,
+    response: ChatResponse,
+    settings: ChatbotSettings,
+    response_source: str,
+    elapsed_ms: int | None = None,
+    converse_response: dict[str, Any] | None = None,
+) -> None:
+    event: dict[str, Any] = {
+        "event": "chat_response_completed",
+        "response_source": response_source,
+        "request_class": "chat",
+        "prompt_template_version": PROMPT_TEMPLATE_VERSION,
+        "model_id": settings.model_id,
+        "max_tokens": settings.max_tokens,
+        "citation_labels": response.citations,
+        "citation_count": len(response.citations),
+        "evidence_strength": response.evidenceStrength,
+        "unsupported_claim_count": len(response.unsupportedClaims),
+    }
+    if elapsed_ms is not None:
+        event["elapsed_ms"] = elapsed_ms
+    if converse_response is not None:
+        event.update(_safe_token_usage(converse_response))
+    logger.info("chat_app_event %s", json.dumps(event, sort_keys=True))
 
 
 class ChatValidationError(ValueError):
@@ -167,24 +258,44 @@ def handle_chat(
 
     canned_response = _guardrail_response(question)
     if canned_response is not None:
+        _log_chat_app_event(response=canned_response, settings=settings, response_source="guardrail")
         return canned_response.to_dict()
 
     sanitized_profile = sanitize_source_text(profile_text)
+    started = time.monotonic()
     try:
         response = bedrock_client.converse(
             modelId=settings.model_id,
             messages=build_messages(question=question, sanitized_profile=sanitized_profile),
             inferenceConfig={"maxTokens": settings.max_tokens},
-            requestMetadata={"request_class": "chat"},
+            requestMetadata={"prompt_template_version": PROMPT_TEMPLATE_VERSION, "request_class": "chat"},
         )
         response_payload = _parse_json_object(_extract_text(response))
         validated = validate_chat_response(response_payload)
-        return _apply_question_guardrails(question, validated).to_dict()
-    except (KeyError, IndexError, TypeError, json.JSONDecodeError, ResponseContractError):
-        logger.exception("chat response failed validation")
+        final_response = _apply_question_guardrails(question, validated)
+        _log_chat_app_event(
+            response=final_response,
+            settings=settings,
+            response_source="bedrock",
+            elapsed_ms=int((time.monotonic() - started) * 1000),
+            converse_response=response,
+        )
+        return final_response.to_dict()
+    except (KeyError, IndexError, TypeError, json.JSONDecodeError, ResponseContractError) as exc:
+        _log_bedrock_boundary_error(
+            boundary_event="bedrock_response_contract_failure",
+            exc=exc,
+            settings=settings,
+            elapsed_ms=int((time.monotonic() - started) * 1000),
+        )
         return {"error": "validation_error"}
-    except Exception:
-        logger.exception("bedrock converse failed")
+    except Exception as exc:
+        _log_bedrock_boundary_error(
+            boundary_event="bedrock_converse_failure",
+            exc=exc,
+            settings=settings,
+            elapsed_ms=int((time.monotonic() - started) * 1000),
+        )
         return {"error": "bedrock_unavailable"}
 
 

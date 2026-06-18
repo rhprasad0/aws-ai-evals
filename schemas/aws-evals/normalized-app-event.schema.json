@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ryans-lab.click/schemas/aws-evals/normalized-app-event.schema.json",
+  "title": "Normalized Candidate Chatbot App Event",
+  "description": "Public-safe normalized event emitted by the candidate-evidence chatbot for observability, deterministic scoring, and later BYOI/export pipelines. It intentionally excludes prompts, source text, full answers, raw model output, session IDs, tracebacks, and provider messages.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event",
+    "response_source",
+    "request_class",
+    "prompt_template_version",
+    "model_id",
+    "max_tokens",
+    "citation_labels",
+    "citation_count",
+    "evidence_strength",
+    "unsupported_claim_count"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "normalized-app-event/v1"
+    },
+    "event": {
+      "type": "string",
+      "const": "chat_response_completed"
+    },
+    "response_source": {
+      "type": "string",
+      "enum": ["bedrock", "guardrail"]
+    },
+    "request_class": {
+      "type": "string",
+      "const": "chat"
+    },
+    "prompt_template_version": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_.:-]{2,80}$"
+    },
+    "model_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "max_tokens": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100000
+    },
+    "citation_labels": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "content/profile.md",
+          "GitHub Profile README",
+          "aws-devops-lab README",
+          "airgap-aiops README",
+          "agent2agent-guestbook README",
+          "closed-loop-ai-podcast README",
+          "aws-ai-evals README",
+          "ai-tamperguard README",
+          "policy-bonfire-2 README"
+        ]
+      }
+    },
+    "citation_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 50
+    },
+    "evidence_strength": {
+      "type": "string",
+      "enum": [
+        "high_public_project",
+        "medium_high_public_project",
+        "medium_high_lab_project",
+        "calibration_required",
+        "weak_support",
+        "unsupported",
+        "unsupported_private"
+      ]
+    },
+    "unsupported_claim_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 50
+    },
+    "elapsed_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 120000
+    },
+    "input_tokens": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "output_tokens": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "total_tokens": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2000000
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "response_source": {"const": "bedrock"}
+        },
+        "required": ["response_source"]
+      },
+      "then": {
+        "required": ["elapsed_ms"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "response_source": {"const": "guardrail"}
+        },
+        "required": ["response_source"]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {"required": ["input_tokens"]},
+            {"required": ["output_tokens"]},
+            {"required": ["total_tokens"]}
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_strength": {
+            "enum": ["unsupported", "unsupported_private"]
+          }
+        },
+        "required": ["evidence_strength"]
+      },
+      "then": {
+        "properties": {
+          "citation_labels": {"maxItems": 0},
+          "citation_count": {"const": 0},
+          "unsupported_claim_count": {"minimum": 1}
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["input_tokens", "output_tokens", "total_tokens"]
+      },
+      "then": {
+        "properties": {
+          "total_tokens": {
+            "minimum": 0
+          }
+        }
+      }
+    }
+  ]
+}

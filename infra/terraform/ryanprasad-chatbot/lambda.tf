@@ -18,5 +18,9 @@ resource "aws_lambda_function" "chat" {
     }
   }
 
+  depends_on = [
+    aws_cloudwatch_log_group.lambda_chat,
+  ]
+
   tags = local.common_tags
 }

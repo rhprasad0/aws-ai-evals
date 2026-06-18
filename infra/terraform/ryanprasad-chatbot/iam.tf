@@ -41,7 +41,10 @@ resource "aws_iam_role_policy" "lambda_logs" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "arn:${data.aws_partition.current.partition}:logs:${var.aws_region}:*:log-group:/aws/lambda/${var.name_prefix}-chat:*"
+        Resource = [
+          aws_cloudwatch_log_group.lambda_chat.arn,
+          "${aws_cloudwatch_log_group.lambda_chat.arn}:*"
+        ]
       }
     ]
   })

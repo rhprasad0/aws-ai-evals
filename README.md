@@ -15,6 +15,7 @@ Start here:
 - [`docs/aws-ai-evals-learning-plan.md`](docs/aws-ai-evals-learning-plan.md) — 12-week roadmap, production experiment, and source ledger
 - [`docs/ryanprasad-ai-chatbot.md`](docs/ryanprasad-ai-chatbot.md) — V1 candidate evidence chatbot spec
 - [`docs/dataset-contracts.md`](docs/dataset-contracts.md) — Week 2 schemas, validator, and eval-lane contract map
+- [`docs/aws-evals/03-instrumentation.md`](docs/aws-evals/03-instrumentation.md) — Week 3 CloudWatch, normalized app-event export, scoring, and Athena query spine
 - [`content/profile.md`](content/profile.md) — canonical public evidence source for the chatbot
 - [`AGENTS.md`](AGENTS.md) — repo rules for public safety, teaching style, and coding-agent behavior
 
@@ -51,6 +52,8 @@ The specimen is a public chatbot on `ryanprasad.ai`.
 
 **Week 1 closeout receipt:** local gates passed for backend tests, frontend build, dataset/schema validation, deterministic citation/overclaim/refusal checks, Terraform validation, run-manifest validation, and public-safety scanning. Live backend smoke tests covered supported evidence, production-overclaim refusal, private-source refusal, and an inert prompt-injection canary.
 
+**Week 3 instrumentation receipt:** the deployed Lambda now emits public-safe `chat_app_event` records to CloudWatch for Bedrock and guardrail paths. Those events export to normalized JSONL, validate against `schemas/aws-evals/normalized-app-event.schema.json`, score deterministically for citation/refusal/token/latency invariants, and can be queried in Athena from the eval-artifacts S3 prefix. The latest verified slice grouped Bedrock vs. guardrail responses by evidence strength, citation behavior, latency, and token totals.
+
 It should:
 
 - answer recruiter questions about Ryan's public GitHub projects from public/project-safe sources, with citations;
@@ -85,13 +88,13 @@ The useful invariant: the chatbot can explain Ryan's public evidence, but it can
 
 ## Progress chart
 
-Current phase: **Week 2 closed: dataset contracts, live deterministic capture, and BYOI export lane validated**. The roadmap is documentation-first, then code/infrastructure, with the `ryanprasad.ai` candidate agent as the live specimen from Week 1.
+Current phase: **Week 3 closed: safe app-event instrumentation, normalized export, deterministic scoring, and Athena failure slicing are in place**. The roadmap is documentation-first, then code/infrastructure, with the `ryanprasad.ai` candidate agent as the live specimen from Week 1.
 
 | Week | Focus | How the chatbot fits | Status | Progress |
 |---:|---|---|---|---|
 | 1 | 🧭 Evaluability design, security envelope, repo contracts | Define recruiter evidence questions, citation rules, data boundaries, IAM/secrets, threat model | ✅ Closed | 🟩🟩🟩🟩🟩 100% |
 | 2 | 🧱 Dataset contracts and schema validators | Synthetic recruiter Q&A, skill-to-evidence labels, unsupported/private-info, and inert injection cases | ✅ Closed | 🟩🟩🟩🟩🟩 100% |
-| 3 | 📡 Trace capture and observability baseline | Chat turns, source labels, evidence strength, refusals, latency, token/cost usage | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
+| 3 | 📡 Trace capture and observability baseline | Chat turns, source labels, evidence strength, refusals, latency, token/cost usage | ✅ Closed | 🟩🟩🟩🟩🟩 100% |
 | 4 | ⚖️ Bedrock model evaluations | Evaluate answer quality and judge behavior for candidate-agent turns | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
 | 5 | 🧪 Custom metrics and judge rubrics | Calibrate rubrics for project answers, refusals, consent, and tool safety | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
 | 6 | 🔎 Bedrock RAG evaluations | Evaluate public GitHub/project retrieval and citation support | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
@@ -113,8 +116,8 @@ gantt
     Candidate-agent production experiment slotted into plan :active, candidate-agent-plan, 2026-06-15, 1d
     section Roadmap
     Week 1: evaluability + security envelope               :done, w1, 2026-06-16, 7d
-    Week 2: datasets + tool contracts                      :w2, after w1, 7d
-    Week 3: production traces + observability              :w3, after w2, 7d
+    Week 2: datasets + tool contracts                      :done, w2, after w1, 7d
+    Week 3: production traces + observability              :done, w3, after w2, 7d
     Week 4: Bedrock model evals                            :w4, after w3, 7d
     Week 5: judge rubrics + calibration                    :w5, after w4, 7d
     Week 6: Bedrock RAG evals                              :w6, after w5, 7d

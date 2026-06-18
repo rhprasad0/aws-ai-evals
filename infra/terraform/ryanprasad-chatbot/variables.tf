@@ -51,3 +51,9 @@ variable "enable_bedrock_invocation_logging" {
   type        = bool
   default     = false
 }
+
+variable "lambda_log_retention_days" {
+  description = "CloudWatch retention window for structured Lambda application logs."
+  type        = number
+  default     = 14
+}

@@ -1,0 +1,41 @@
+# CloudWatch Logs Insights — Lambda/Bedrock boundary errors
+# Log group: /aws/lambda/<name-prefix>-chat
+# Purpose: app-level boundary failures only. Raw prompts/responses stay out of CloudWatch.
+
+fields @timestamp, @message
+| filter @message like /bedrock_boundary_error/
+| parse @message /bedrock_boundary_error (?<event_json>\{.*\})/
+| sort @timestamp desc
+| limit 50
+
+# Failure counts by boundary event and safe AWS status/code.
+fields @timestamp, @message
+| filter @message like /bedrock_boundary_error/
+| parse @message /"event": "(?<event>[^"]+)"/
+| parse @message /"aws_error_code": "(?<aws_error_code>[^"]+)"/
+| parse @message /"http_status_code": (?<http_status_code>\d+)/
+| stats count() as failures by event, aws_error_code, http_status_code
+| sort failures desc
+
+# Latency distribution for Bedrock boundary failures.
+fields @timestamp, @message
+| filter @message like /bedrock_boundary_error/
+| parse @message /"elapsed_ms": (?<elapsed_ms>\d+)/
+| stats count() as failures, pct(elapsed_ms, 50) as p50_ms, pct(elapsed_ms, 95) as p95_ms, max(elapsed_ms) as max_ms
+
+# Safe completed-response app events by source and evidence strength.
+fields @timestamp, @message
+| filter @message like /chat_app_event/
+| parse @message /"response_source": "(?<response_source>[^"]+)"/
+| parse @message /"evidence_strength": "(?<evidence_strength>[^"]+)"/
+| stats count() as responses by response_source, evidence_strength
+| sort responses desc
+
+# Token and latency summary for Bedrock-backed successful responses.
+fields @timestamp, @message
+| filter @message like /chat_app_event/ and @message like /"response_source": "bedrock"/
+| parse @message /"elapsed_ms": (?<elapsed_ms>\d+)/
+| parse @message /"input_tokens": (?<input_tokens>\d+)/
+| parse @message /"output_tokens": (?<output_tokens>\d+)/
+| parse @message /"total_tokens": (?<total_tokens>\d+)/
+| stats count() as responses, pct(elapsed_ms, 50) as p50_ms, pct(elapsed_ms, 95) as p95_ms, sum(total_tokens) as total_tokens
