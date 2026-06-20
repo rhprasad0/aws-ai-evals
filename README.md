@@ -15,6 +15,8 @@ Start here:
 - [`docs/aws-ai-evals-learning-plan.md`](docs/aws-ai-evals-learning-plan.md) — 12-week roadmap, production experiment, and source ledger
 - [`docs/dataset-contracts.md`](docs/dataset-contracts.md) — Week 2 schemas, validator, and eval-lane contract map
 - [`docs/aws-evals/03-instrumentation.md`](docs/aws-evals/03-instrumentation.md) — Week 3 CloudWatch, normalized app-event export, scoring, and Athena query spine
+- [`docs/week-04-model-evals-runbook.md`](docs/week-04-model-evals-runbook.md) — Week 4 Bedrock model-eval BYOI runbook and managed-job boundary
+- [`docs/week-04-model-evals-first-run.md`](docs/week-04-model-evals-first-run.md) — first managed Bedrock BYOI model-eval receipt
 - [`content/profile.md`](content/profile.md) — canonical public evidence source for the chatbot
 - [`AGENTS.md`](AGENTS.md) — repo rules for public safety, teaching style, and coding-agent behavior
 
@@ -53,6 +55,8 @@ The specimen is a public candidate evidence chatbot.
 
 **Week 3 instrumentation receipt:** the deployed Lambda now emits public-safe `chat_app_event` records to CloudWatch for Bedrock and guardrail paths. Those events export to normalized JSONL, validate against `schemas/aws-evals/normalized-app-event.schema.json`, score deterministically for citation/refusal/token/latency invariants, and can be queried in Athena from the eval-artifacts S3 prefix. The latest verified slice grouped Bedrock vs. guardrail responses by evidence strength, citation behavior, latency, and token totals.
 
+**Week 4 Bedrock model-eval receipt:** captured chatbot answers now export into Bedrock model-eval BYOI JSONL and a real managed model-as-judge job completed in the sandbox account. The job used precomputed app responses, wrote managed output JSONL to the private eval-artifacts prefix, and showed the expected split: deterministic gates catch hard contract misses while Bedrock grades fuzzy correctness/completeness. The reusable eval service role is now Terraform-managed; per-run job JSON, raw outputs, and real AWS identifiers stay private.
+
 It should:
 
 - answer recruiter questions about Ryan's public GitHub projects from public/project-safe sources, with citations;
@@ -87,14 +91,14 @@ The useful invariant: the chatbot can explain Ryan's public evidence, but it can
 
 ## Progress chart
 
-Current phase: **Week 3 closed: safe app-event instrumentation, normalized export, deterministic scoring, and Athena failure slicing are in place**. The roadmap is documentation-first, then code/infrastructure, with the candidate evidence chatbot as the live specimen from Week 1.
+Current phase: **Week 4 closed: Bedrock model-eval BYOI adapter, managed job template, runbook, first sandbox run, and Terraform eval IAM runway are in place**. The roadmap is documentation-first, then code/infrastructure, with the candidate evidence chatbot as the live specimen from Week 1.
 
 | Week | Focus | How the chatbot fits | Status | Progress |
 |---:|---|---|---|---|
 | 1 | 🧭 Evaluability design, security envelope, repo contracts | Define recruiter evidence questions, citation rules, data boundaries, IAM/secrets, threat model | ✅ Closed | 🟩🟩🟩🟩🟩 100% |
 | 2 | 🧱 Dataset contracts and schema validators | Synthetic recruiter Q&A, skill-to-evidence labels, unsupported/private-info, and inert injection cases | ✅ Closed | 🟩🟩🟩🟩🟩 100% |
 | 3 | 📡 Trace capture and observability baseline | Chat turns, source labels, evidence strength, refusals, latency, token/cost usage | ✅ Closed | 🟩🟩🟩🟩🟩 100% |
-| 4 | ⚖️ Bedrock model evaluations | Evaluate answer quality and judge behavior for chatbot turns | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
+| 4 | ⚖️ Bedrock model evaluations | Evaluate answer quality and judge behavior for chatbot turns | ✅ Closed | 🟩🟩🟩🟩🟩 100% |
 | 5 | 🧪 Custom metrics and judge rubrics | Calibrate rubrics for project answers, refusals, and unsupported-claim boundaries | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
 | 6 | 🔎 Bedrock RAG evaluations | Evaluate public GitHub/project retrieval and citation support | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
 | 7 | ✅ Deterministic scorers and small event glue | Check citations, no secrets, response schemas, unsupported claims, and rate limits | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
@@ -117,7 +121,7 @@ gantt
     Week 1: evaluability + security envelope               :done, w1, 2026-06-16, 7d
     Week 2: datasets + response contracts                  :done, w2, after w1, 7d
     Week 3: production traces + observability              :done, w3, after w2, 7d
-    Week 4: Bedrock model evals                            :w4, after w3, 7d
+    Week 4: Bedrock model evals                            :done, w4, after w3, 7d
     Week 5: judge rubrics + calibration                    :w5, after w4, 7d
     Week 6: Bedrock RAG evals                              :w6, after w5, 7d
     Week 7: deterministic scorers                          :w7, after w6, 7d

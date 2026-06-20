@@ -489,11 +489,19 @@ Managed eval jobs are useful, but only when you understand their schemas, job bo
 - Multi-model or multi-config comparison starts with Bedrock-native reports/comparison where supported; any extra manifests explain why custom coordination is needed.
 - Output handling expects managed reports and S3 result artifacts, not console screenshots.
 
+### Closeout status
+
+Closed. The committed Week 4 slice includes the BYOI adapter, placeholder `create-evaluation-job` template, runbook, first-run receipt, and Terraform-managed Bedrock eval IAM role. A sandbox Bedrock model-as-judge BYOI job completed over captured chatbot responses, produced managed output JSONL, and confirmed the expected boundary: deterministic gates catch hard response-contract misses while Bedrock scores fuzzy correctness/completeness. Raw job outputs, real AWS identifiers, and S3 artifacts remain private/sandbox-only.
+
+Carry into Week 5: repeated runs, stronger/independent judge comparison, human-label agreement, and variance analysis before any judge score becomes a regression gate.
+
 ### Public-safe artifacts to commit
 
 - `src/adapters/bedrock_model_eval.py`
 - `infra/templates/bedrock-model-eval-job.json`
 - `docs/week-04-model-evals-runbook.md`
+- `docs/week-04-model-evals-first-run.md`
+- `infra/terraform/ryanprasad-chatbot/bedrock_eval.tf`
 
 ### Common failure modes
 

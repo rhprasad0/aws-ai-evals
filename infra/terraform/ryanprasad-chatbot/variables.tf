@@ -34,6 +34,24 @@ variable "bedrock_model_id" {
   default     = "us.amazon.nova-2-lite-v1:0"
 }
 
+variable "bedrock_eval_judge_model_id" {
+  description = "Bedrock evaluator model or inference profile ID used by model evaluation jobs."
+  type        = string
+  default     = "us.amazon.nova-2-lite-v1:0"
+}
+
+variable "bedrock_eval_judge_foundation_model_id" {
+  description = "Foundation model ID routed by bedrock_eval_judge_model_id; used to scope evaluator InvokeModel permissions."
+  type        = string
+  default     = "amazon.nova-2-lite-v1:0"
+}
+
+variable "bedrock_eval_judge_foundation_model_regions" {
+  description = "Foundation model regions routed by the evaluator inference profile. Update when changing bedrock_eval_judge_model_id."
+  type        = list(string)
+  default     = ["us-east-1", "us-east-2", "us-west-2"]
+}
+
 variable "profile_source_max_chars" {
   description = "Maximum bundled profile source size for prompt stuffing."
   type        = number

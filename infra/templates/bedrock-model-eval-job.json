@@ -1,0 +1,43 @@
+{
+  "jobName": "<BEDROCK_EVAL_JOB_NAME>",
+  "roleArn": "<BEDROCK_EVAL_ROLE_ARN>",
+  "applicationType": "ModelEvaluation",
+  "evaluationConfig": {
+    "automated": {
+      "datasetMetricConfigs": [
+        {
+          "taskType": "General",
+          "dataset": {
+            "name": "candidate_evidence_chatbot_byoi",
+            "datasetLocation": {
+              "s3Uri": "s3://example-eval-bucket/input/bedrock-model-eval-byoi.jsonl"
+            }
+          },
+          "metricNames": [
+            "Builtin.Correctness",
+            "Builtin.Completeness"
+          ]
+        }
+      ],
+      "evaluatorModelConfig": {
+        "bedrockEvaluatorModels": [
+          {
+            "modelIdentifier": "<EVALUATOR_MODEL_ID>"
+          }
+        ]
+      }
+    }
+  },
+  "inferenceConfig": {
+    "models": [
+      {
+        "precomputedInferenceSource": {
+          "inferenceSourceIdentifier": "<BYOI_MODEL_IDENTIFIER>"
+        }
+      }
+    ]
+  },
+  "outputDataConfig": {
+    "s3Uri": "s3://example-eval-bucket/output/model-evals/"
+  }
+}

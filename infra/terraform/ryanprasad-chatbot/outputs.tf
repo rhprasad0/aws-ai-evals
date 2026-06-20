@@ -32,3 +32,8 @@ output "lambda_log_group_name" {
   description = "CloudWatch log group for structured Lambda application logs."
   value       = aws_cloudwatch_log_group.lambda_chat.name
 }
+
+output "bedrock_eval_role_arn" {
+  description = "IAM service role ARN for Bedrock model evaluation jobs over sandbox eval artifacts."
+  value       = aws_iam_role.bedrock_eval.arn
+}
