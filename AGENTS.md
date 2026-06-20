@@ -22,6 +22,13 @@ Build a hands-on AWS AI evals learning path focused on reproducible harness engi
 model evals, RAG evals, agent/tool evals, BYOI dataset adapters, judge validation,
 custom scorers, observability, orchestration, cost controls, and public-safe evidence.
 
+## Learning-plan guardrails
+
+- Eval learning and credible receipts matter more than app/platform sprawl. Keep specimen apps boring unless extra app code directly creates an eval surface.
+- Before building custom harness pieces for a week, use or attempt the managed AWS path first where possible: Bedrock jobs/reports/S3 outputs before custom adapters and summaries.
+- Do not mark a week complete only because code exists. Capture what was learned: console/API behavior, job/report IDs or blockers, output shapes, cost/token notes, screenshots, and managed-vs-deterministic mismatches.
+- When Ryan asks to inspect a week, start with the learning-plan objective and remaining learning questions before proposing more implementation.
+
 ## Agent rules
 
 - Keep public claims technically grounded and scoped.
