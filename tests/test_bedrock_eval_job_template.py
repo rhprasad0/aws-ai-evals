@@ -32,7 +32,7 @@ class BedrockEvalJobTemplateTests(unittest.TestCase):
         self.assertIn("<BEDROCK_EVAL_ROLE_ARN>", text)
         self.assertIn("s3://example-eval-bucket/", text)
 
-    def test_custom_metric_template_wires_week5_metrics_to_claude_judge(self) -> None:
+    def test_custom_metric_template_wires_week5_metrics_to_supported_judge(self) -> None:
         payload = json.loads(CUSTOM_TEMPLATE.read_text(encoding="utf-8"))
         automated = payload["evaluationConfig"]["automated"]
         metric_config = automated["datasetMetricConfigs"][0]
@@ -45,7 +45,7 @@ class BedrockEvalJobTemplateTests(unittest.TestCase):
         )
         self.assertEqual(
             custom_metric_config["evaluatorModelConfig"]["bedrockEvaluatorModels"],
-            [{"modelIdentifier": "us.anthropic.claude-sonnet-4-6"}],
+            [{"modelIdentifier": "us.amazon.nova-pro-v1:0"}],
         )
         metric_names = metric_config["metricNames"]
         custom_metrics = custom_metric_config["customMetrics"]
