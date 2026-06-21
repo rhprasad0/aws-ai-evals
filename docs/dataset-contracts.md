@@ -41,6 +41,8 @@ The validator:
 | `schemas/refusal-outcome.schema.json` | Subcontract | Refusal/escalation labels for unsupported public claims, private-source asks, prompt-injection canaries, rate limits, and human review. |
 | `schemas/model-eval-prompt-dataset.schema.json` | Bedrock model eval | Prompt dataset shape when Bedrock invokes the selected model under test. |
 | `schemas/bedrock-model-eval-byoi.schema.json` | Bedrock model eval BYOI | Prompt plus one supplied `modelResponses[]` item when the app/harness already generated the response and Bedrock should judge it. |
+| `schemas/human-label.schema.json` | Judge calibration | Human-curated expected rubric labels for one source example and one rubric. These are the calibration baseline, not generated judge output. |
+| `schemas/judge-output.schema.json` | Judge calibration | Machine-parseable LLM-as-judge output for one rubric/example/run/repetition. Human labels stay separate and join by `example_id` and `rubric_id`. |
 | `schemas/rag-retrieve-generate-byoi.schema.json` | RAG grounding compatibility | Retrieve-and-generate BYOI shape for evaluating grounded answers, generated text, and retrieved passages from an external grounded-answer system. |
 | `schemas/rag-retrieval-only-byoi.schema.json` | RAG grounding compatibility | Retrieve-only BYOI shape for evaluating retrieved passages without judging final generated text. |
 | `schemas/run-manifest.schema.json` | Reproducibility | Run receipt for deterministic, live smoke, Bedrock model BYOI, or RAG BYOI eval lanes. |
@@ -100,12 +102,17 @@ python3 -m unittest tests.test_validate_dataset -v
 2. Run local/live chatbot responses through `scripts/capture_candidate_chatbot_responses.py`; it validates each response against the backend response contract.
 3. Score captured responses deterministically for citations, required content, forbidden claims, evidence strength, and refusal behavior.
 4. Export captured answers into Bedrock model-eval BYOI rows. If deterministic scoring found failures, treat the BYOI file as judge-calibration input, not a clean regression batch.
-5. Export retrieved/public-source snippets into RAG BYOI rows only when doing grounded-answer compatibility work.
+5. For Week 5 calibration, validate human labels and judge outputs, then run `scripts/judge_calibration_report.py --human-labels datasets/synthetic/human-labels.jsonl --judge-output <judge-output.jsonl>` to compute agreement, Cohen's kappa, confusion matrices, disagreements, and repeated-run variance.
+6. Generate Bedrock custom metric definitions from the rubric library with `scripts/build_bedrock_custom_metrics.py --output-dir build/bedrock-custom-metrics`; the generated JSON stays under ignored `build/` unless a scrubbed template needs to be promoted. The committed Week 5 job template is `infra/templates/bedrock-custom-metric-eval-job.json`, with Claude Sonnet configured as the custom-metric evaluator and BYOI placeholders for the model response dataset.
+7. Export retrieved/public-source snippets into RAG BYOI rows only when doing grounded-answer compatibility work.
 
 ## Current synthetic datasets
 
 - `datasets/synthetic/recruiter-evidence-qa.jsonl` — legacy/native deterministic rows for supported recruiter questions, unsupported overclaims, private-source refusals, inert prompt-injection canaries, and rate-limit/off-topic boundaries.
 - `datasets/synthetic/candidate-chat-turns.jsonl` — richer source-of-truth chat-turn rows for the same lanes, including a multi-turn repeated-question case for future live replay.
+- `datasets/synthetic/human-labels.jsonl` — Week 5 human-curated calibration labels, one row per recruiter-evidence example and rubric, used as the join target for judge-vs-human agreement.
+- Week 5 judge outputs should validate against `schemas/judge-output.schema.json`; keep generated judge outputs separate from human-label fixtures so calibration can compare judge-vs-human instead of smuggling labels into the judge record.
+- Week 5 judge model selection lives in `docs/week-05-judge-model-plan.md`: Claude Sonnet primary, Nova Pro comparison, Nova 2 Lite baseline/control.
 
 Week 2 closeout: the expanded synthetic dataset validates locally, the live chatbot capture returns valid responses for all rows, deterministic live scoring passes for all rows, and the captured answers export into valid Bedrock model-eval BYOI JSONL. Bedrock Evaluation jobs are a later execution step; this week validated the input lane and hard gates.
 

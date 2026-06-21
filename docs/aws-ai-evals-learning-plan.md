@@ -535,14 +535,13 @@ A judge prompt is production logic. Treat it like code, not a magic incantation.
 
 ### Build tasks
 
-1. Create a rubric library under `rubrics/`:
+1. Create a rubric library under `rubrics/`, starting with the chatbot-specific metrics that can be calibrated against public-safe human labels:
    - correctness;
-   - harmlessness;
-   - instruction following;
+   - completeness;
    - citation support;
    - refusal appropriateness;
-   - citation support;
    - evidence-strength calibration.
+   Defer broader harmlessness and generic instruction-following rubrics unless the calibration set exposes a concrete chatbot failure mode they would catch better than the scoped rubrics above.
 2. For each rubric, define:
    - purpose;
    - allowed scores;
@@ -557,6 +556,7 @@ A judge prompt is production logic. Treat it like code, not a magic incantation.
 4. Write a judge validation notebook or script:
    - judge-vs-human agreement;
    - at least 3 repeated runs of the same prompt set to measure score variance;
+   - Claude Sonnet as the primary independent judge, Nova Pro as a stronger Amazon-family comparison judge, and Nova 2 Lite retained only as the Week 4 control/baseline;
    - high-variance cases flagged for human review;
    - inter-rater agreement beyond raw accuracy (e.g. Cohen's kappa), so chance agreement does not flatter the judge;
    - confusion matrix;
@@ -580,6 +580,7 @@ A judge prompt is production logic. Treat it like code, not a magic incantation.
 - `datasets/synthetic/human-labels.jsonl`
 - `scripts/judge_calibration_report.py`
 - `docs/judge-validation.md`
+- `docs/week-05-judge-model-plan.md`
 
 ### Common failure modes
 
@@ -591,7 +592,7 @@ A judge prompt is production logic. Treat it like code, not a magic incantation.
 
 ### Stretch goals
 
-- Compare two evaluator models.
+- Compare a third evaluator family if the primary/comparison judge results disagree in an interesting way.
 - Add bootstrap confidence intervals.
 
 ---

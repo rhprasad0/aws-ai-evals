@@ -15,6 +15,7 @@ dist/
 tfplan
 **/tfplan
 infra/terraform/**/build/
+/build/
 __pycache__/
 *.py[cod]
 .DS_Store

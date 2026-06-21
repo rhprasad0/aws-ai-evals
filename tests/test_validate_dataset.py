@@ -9,6 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 VALIDATOR = ROOT / "scripts" / "validate_dataset.py"
 SCHEMA = ROOT / "schemas" / "recruiter-evidence-qa.schema.json"
 RUN_MANIFEST_SCHEMA = ROOT / "schemas" / "run-manifest.schema.json"
+JUDGE_OUTPUT_SCHEMA = ROOT / "schemas" / "judge-output.schema.json"
+HUMAN_LABEL_SCHEMA = ROOT / "schemas" / "human-label.schema.json"
 FIXTURES = ROOT / "tests" / "fixtures" / "datasets"
 
 
@@ -36,6 +38,24 @@ class ValidateDatasetFixtureTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('"valid": true', result.stdout)
 
+    def test_valid_judge_output_fixture_passes(self) -> None:
+        result = self.run_validator(
+            JUDGE_OUTPUT_SCHEMA,
+            FIXTURES / "valid" / "judge-output-valid.jsonl",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('"valid": true', result.stdout)
+        self.assertIn('"rows": 2', result.stdout)
+
+    def test_valid_human_label_fixture_passes(self) -> None:
+        result = self.run_validator(
+            HUMAN_LABEL_SCHEMA,
+            FIXTURES / "valid" / "human-label-valid.jsonl",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('"valid": true', result.stdout)
+        self.assertIn('"rows": 5', result.stdout)
+
     def test_invalid_fixtures_fail_with_expected_reason(self) -> None:
         cases = {
             "bad-citation.jsonl": "not one of",
@@ -52,6 +72,32 @@ class ValidateDatasetFixtureTests(unittest.TestCase):
         for filename, expected in cases.items():
             with self.subTest(filename=filename):
                 result = self.run_validator(SCHEMA, FIXTURES / "invalid" / filename)
+                combined = result.stdout + result.stderr
+                self.assertNotEqual(result.returncode, 0, combined)
+                self.assertIn("line 1", combined)
+                self.assertIn(expected, combined)
+
+    def test_invalid_judge_output_fixtures_fail_with_expected_reason(self) -> None:
+        cases = {
+            "bad-judge-score.jsonl": "not one of",
+            "bad-judge-score-label.jsonl": "'pass' was expected",
+        }
+        for filename, expected in cases.items():
+            with self.subTest(filename=filename):
+                result = self.run_validator(JUDGE_OUTPUT_SCHEMA, FIXTURES / "invalid" / filename)
+                combined = result.stdout + result.stderr
+                self.assertNotEqual(result.returncode, 0, combined)
+                self.assertIn("line 1", combined)
+                self.assertIn(expected, combined)
+
+    def test_invalid_human_label_fixtures_fail_with_expected_reason(self) -> None:
+        cases = {
+            "bad-human-label-score.jsonl": "not one of",
+            "bad-human-label-score-label.jsonl": "'pass' was expected",
+        }
+        for filename, expected in cases.items():
+            with self.subTest(filename=filename):
+                result = self.run_validator(HUMAN_LABEL_SCHEMA, FIXTURES / "invalid" / filename)
                 combined = result.stdout + result.stderr
                 self.assertNotEqual(result.returncode, 0, combined)
                 self.assertIn("line 1", combined)
