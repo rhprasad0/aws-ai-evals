@@ -551,7 +551,7 @@ A judge prompt is production logic. Treat it like code, not a magic incantation.
 3. Build a calibration dataset:
    - 50 synthetic examples;
    - examples from public project Q&A, citation support, evidence-strength calibration, unsupported/private-info, and inert injection classes;
-   - human labels;
+   - human labels assembled with `scripts/human_label_workbench.py` instead of hand-written JSONL;
    - expected failure labels.
 4. Write a judge validation notebook or script:
    - judge-vs-human agreement;
@@ -569,6 +569,7 @@ A judge prompt is production logic. Treat it like code, not a magic incantation.
 - Each rubric has a version and owner.
 - Judge outputs are machine-parseable.
 - Human labels are stored separately from generated model outputs.
+- In-progress empty human-label files are allowed only during manual relabeling; final calibration requires `scripts/human_label_workbench.py validate` to pass.
 - You can identify which labels the judge gets wrong.
 - Repeated-run variance is measured and reported before any judge score is used as a regression gate.
 - No judge gates anything until it clears a documented agreement bar against human labels.

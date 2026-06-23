@@ -48,7 +48,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_jsonl(path: Path) -> list[dict[str, Any]]:
+def load_jsonl(path: Path, *, allow_empty: bool = False) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
@@ -60,7 +60,7 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
         if not isinstance(payload, dict):
             raise ValueError(f"{path}: line {line_no}: row must be a JSON object")
         rows.append(payload)
-    if not rows:
+    if not rows and not allow_empty:
         raise ValueError(f"{path}: contains no JSON objects")
     return rows
 
@@ -235,7 +235,7 @@ def summarize(items: list[JoinedJudgment], *, missing_labels: list[dict[str, Any
 def main() -> int:
     args = parse_args()
     try:
-        human_rows = load_jsonl(args.human_labels)
+        human_rows = load_jsonl(args.human_labels, allow_empty=True)
         judge_rows = load_jsonl(args.judge_output)
         joined, missing = join_rows(
             human_rows,

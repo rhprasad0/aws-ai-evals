@@ -99,7 +99,7 @@ Current phase: **Week 4 closed: Bedrock model-eval BYOI adapter, managed job tem
 | 2 | 🧱 Dataset contracts and schema validators | Synthetic recruiter Q&A, skill-to-evidence labels, unsupported/private-info, and inert injection cases | ✅ Closed | 🟩🟩🟩🟩🟩 100% |
 | 3 | 📡 Trace capture and observability baseline | Chat turns, source labels, evidence strength, refusals, latency, token/cost usage | ✅ Closed | 🟩🟩🟩🟩🟩 100% |
 | 4 | ⚖️ Bedrock model evaluations | Evaluate answer quality and judge behavior for chatbot turns | ✅ Closed | 🟩🟩🟩🟩🟩 100% |
-| 5 | 🧪 Custom metrics and judge rubrics | Calibrate rubrics for project answers, refusals, and unsupported-claim boundaries | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
+| 5 | 🧪 Custom metrics and judge rubrics | Calibrate rubrics for project answers, refusals, and unsupported-claim boundaries | 🚧 In progress | 🟩🟩⬜⬜⬜ 40% |
 | 6 | 🔎 Bedrock RAG evaluations | Evaluate public GitHub/project retrieval and citation support | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
 | 7 | ✅ Deterministic scorers and small event glue | Check citations, no secrets, response schemas, unsupported claims, and rate limits | ⏳ Not started | ⬜⬜⬜⬜⬜ 0% |
 | 8 | 🛠️ Agent/tool evaluations | Deferred to a later project; no Calendar/Slack/tool trajectory work in this repo | ⏸️ Deferred | ⬜⬜⬜⬜⬜ 0% |

@@ -104,6 +104,57 @@ class JudgeCalibrationReportTests(unittest.TestCase):
         self.assertEqual(joined, [])
         self.assertEqual(missing[0]["example_id"], "recruiter_container_orchestration")
 
+    def test_empty_human_label_file_reports_missing_without_crashing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            human_path = Path(tmp) / "human.jsonl"
+            judge_path = Path(tmp) / "judge.jsonl"
+            human_path.write_text("", encoding="utf-8")
+            judge_path.write_text(json.dumps(judge_output(score=2)) + "\n", encoding="utf-8")
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--human-labels",
+                    str(human_path),
+                    "--judge-output",
+                    str(judge_path),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('"rows_joined": 0', result.stdout)
+        self.assertIn('"missing_human_labels"', result.stdout)
+        self.assertIn('"agreement": null', result.stdout)
+
+    def test_fail_on_disagreement_ignores_missing_human_labels(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            human_path = Path(tmp) / "human.jsonl"
+            judge_path = Path(tmp) / "judge.jsonl"
+            human_path.write_text("", encoding="utf-8")
+            judge_path.write_text(json.dumps(judge_output(score=0)) + "\n", encoding="utf-8")
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--human-labels",
+                    str(human_path),
+                    "--judge-output",
+                    str(judge_path),
+                    "--fail-on-disagreement",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('"disagreements": 0', result.stdout)
+
     def test_cli_outputs_report_and_fail_on_disagreement(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             human_path = Path(tmp) / "human.jsonl"
@@ -135,7 +186,7 @@ class JudgeCalibrationReportTests(unittest.TestCase):
                 sys.executable,
                 str(SCRIPT),
                 "--human-labels",
-                str(HUMAN_LABELS),
+                str(ROOT / "tests" / "fixtures" / "datasets" / "valid" / "human-label-valid.jsonl"),
                 "--judge-output",
                 str(ROOT / "tests" / "fixtures" / "datasets" / "valid" / "judge-output-valid.jsonl"),
             ],
@@ -146,7 +197,8 @@ class JudgeCalibrationReportTests(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('"rows_joined": 2', result.stdout)
+        self.assertIn('"rows_joined": 1', result.stdout)
+        self.assertIn('"missing_human_labels"', result.stdout)
 
 
 if __name__ == "__main__":

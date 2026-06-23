@@ -22,6 +22,34 @@ For each rubric and dataset slice:
 
 No judge score becomes a regression gate until it clears the documented human-label agreement bar and repeated-run variance is low enough for that rubric.
 
+## Human-label workflow
+
+The first 105 `datasets/synthetic/human-labels.jsonl` rows were scaffold labels, not final calibration truth. They have been archived locally and the tracked label file is intentionally empty until the next manual labeling pass is complete.
+
+Use the local workbench instead of hand-writing JSONL:
+
+```bash
+python3 scripts/human_label_workbench.py clear --labels datasets/synthetic/human-labels.jsonl --archive-dir build/human-labeling
+python3 scripts/human_label_workbench.py gui --dataset datasets/synthetic/recruiter-evidence-qa.jsonl --labels datasets/synthetic/human-labels.jsonl
+python3 scripts/human_label_workbench.py validate --dataset datasets/synthetic/recruiter-evidence-qa.jsonl --labels datasets/synthetic/human-labels.jsonl
+```
+
+The GUI depends on Tkinter. If `python3` reports `No module named 'tkinter'`, a venv will not fix it because Tkinter is an OS/Python-build extension; install the system package first on Ubuntu/Debian with `sudo apt-get install python3-tk`, then rerun the same command.
+
+When working over SSH without X forwarding, use the browser workbench instead:
+
+```bash
+python3 scripts/human_label_web_workbench.py --host 0.0.0.0 --port 8765 --dataset datasets/synthetic/recruiter-evidence-qa.jsonl --labels datasets/synthetic/human-labels.jsonl
+```
+
+Then open `http://<machine-hostname-or-ip>:8765/` from a browser that can reach the machine. Bind to `127.0.0.1` instead if you are using SSH port forwarding.
+
+Partial work is saved with the **Save draft** button to ignored local state at `build/human-labeling/draft-label-state.json`; both the Tkinter and browser workbenches reload that draft on startup. **Export completed labels** is stricter: it writes `datasets/synthetic/human-labels.jsonl` only when every example/rubric slot is complete and schema-valid.
+
+The GUI uses the repo's direct `0`/`1`/`2` human-label scale: `0 = fail`, `1 = partial`, and `2 = pass`. Bedrock managed/built-in scores may appear normalized as floats such as `0.0`, `0.5`, `0.75`, or `1.0`; keep those visible as judge output and do not silently treat them as human labels.
+
+Do not treat a Week 5 calibration report as meaningful until the label file validates with one complete row for every recruiter-evidence example and rubric.
+
 ## Bedrock job template
 
 Use `infra/templates/bedrock-custom-metric-eval-job.json` for the first custom-metric run. It embeds the five Week 5 custom metric definitions, references the BYOI dataset through public-safe S3 placeholders, and sets the custom-metric evaluator to `us.amazon.nova-pro-v1:0`, which is currently runnable in the AWS account.

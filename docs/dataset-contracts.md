@@ -110,7 +110,7 @@ python3 -m unittest tests.test_validate_dataset -v
 
 - `datasets/synthetic/recruiter-evidence-qa.jsonl` — legacy/native deterministic rows for supported recruiter questions, unsupported overclaims, private-source refusals, inert prompt-injection canaries, and rate-limit/off-topic boundaries.
 - `datasets/synthetic/candidate-chat-turns.jsonl` — richer source-of-truth chat-turn rows for the same lanes, including a multi-turn repeated-question case for future live replay.
-- `datasets/synthetic/human-labels.jsonl` — Week 5 human-curated calibration labels, one row per recruiter-evidence example and rubric, used as the join target for judge-vs-human agreement.
+- `datasets/synthetic/human-labels.jsonl` — Week 5 human-curated calibration labels, one row per recruiter-evidence example and rubric, used as the join target for judge-vs-human agreement. This file may be empty while manual relabeling is in progress; run `scripts/human_label_workbench.py validate` before using it for a serious calibration report.
 - Week 5 judge outputs should validate against `schemas/judge-output.schema.json`; keep generated judge outputs separate from human-label fixtures so calibration can compare judge-vs-human instead of smuggling labels into the judge record.
 - Week 5 judge model selection lives in `docs/week-05-judge-model-plan.md`: Claude Sonnet primary, Nova Pro comparison, Nova 2 Lite baseline/control.
 
