@@ -17,8 +17,19 @@ DEFAULT_LABELS = ROOT / "datasets" / "synthetic" / "human-labels.jsonl"
 DEFAULT_ARCHIVE_DIR = ROOT / "build" / "human-labeling"
 DEFAULT_DRAFT = DEFAULT_ARCHIVE_DIR / "draft-label-state.json"
 HUMAN_LABEL_SCHEMA = ROOT / "schemas" / "human-label.schema.json"
+RECRUITER_DATASET_SCHEMA = ROOT / "schemas" / "recruiter-evidence-qa.schema.json"
 VALIDATOR = ROOT / "scripts" / "validate_dataset.py"
 SOURCE_DATASET = "datasets/synthetic/recruiter-evidence-qa.jsonl"
+DATASET_ROW_KEYS = (
+    "id",
+    "question",
+    "expected_sources",
+    "must_include",
+    "must_not_claim",
+    "expected_evidence_strength",
+    "referenceResponse",
+    "category",
+)
 
 RUBRIC_VERSIONS = {
     "correctness": "candidate-correctness/v1",
@@ -196,6 +207,92 @@ def load_examples(path: Path) -> list[dict[str, Any]]:
             raise ValueError(f"{path}: duplicate example id {example_id}")
         seen.add(example_id)
     return rows
+
+
+def source_label_options(schema_path: Path = RECRUITER_DATASET_SCHEMA) -> list[str]:
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    enum = schema["properties"]["expected_sources"]["items"]["enum"]
+    if not isinstance(enum, list) or not all(isinstance(item, str) for item in enum):
+        raise ValueError(f"{schema_path}: expected_sources enum must be a string array")
+    return list(enum)
+
+
+def _clean_string_list(value: Any, *, field: str) -> list[str]:
+    if isinstance(value, str):
+        raw_items = value.splitlines()
+    elif isinstance(value, list):
+        raw_items = value
+    else:
+        raise ValueError(f"{field} must be a list or newline-delimited string")
+    return [str(item).strip() for item in raw_items if str(item).strip()]
+
+
+def normalize_dataset_row(row: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(row, dict):
+        raise ValueError("dataset row must be an object")
+    normalized: dict[str, Any] = {}
+    for field in ("id", "question", "expected_evidence_strength", "referenceResponse", "category"):
+        value = row.get(field)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{field} is required")
+        normalized[field] = value.strip()
+    for field in ("expected_sources", "must_include", "must_not_claim"):
+        normalized[field] = _clean_string_list(row.get(field, []), field=field)
+    return {key: normalized[key] for key in DATASET_ROW_KEYS}
+
+
+def normalize_dataset_rows(rows: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for index, row in enumerate(rows, 1):
+        try:
+            item = normalize_dataset_row(row)
+        except Exception as exc:
+            raise ValueError(f"row {index}: {exc}") from exc
+        row_id = str(item["id"])
+        if row_id in seen:
+            raise ValueError(f"duplicate dataset id {row_id}")
+        seen.add(row_id)
+        normalized.append(item)
+    if not normalized:
+        raise ValueError("dataset must contain at least one row")
+    return normalized
+
+
+def write_dataset_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = "".join(json.dumps({key: row[key] for key in DATASET_ROW_KEYS}, ensure_ascii=False) + "\n" for row in rows)
+    path.write_text(text, encoding="utf-8")
+
+
+def validate_recruiter_dataset_file(path: Path) -> tuple[bool, list[str]]:
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), "--schema", str(RECRUITER_DATASET_SCHEMA), "--input", str(path), "--format", "jsonl"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        return True, []
+    output = (result.stderr or result.stdout).strip()
+    issues = [line.strip().removeprefix("- ") for line in output.splitlines() if line.strip() and line.strip() != "validation failed:"]
+    return False, issues or [output or "dataset validation failed"]
+
+
+def save_dataset_rows(path: Path, rows: Iterable[dict[str, Any]]) -> tuple[bool, list[str], int]:
+    normalized = normalize_dataset_rows(rows)
+    temp = path.with_name(f".{path.name}.tmp")
+    write_dataset_jsonl(temp, normalized)
+    ok, issues = validate_recruiter_dataset_file(temp)
+    if not ok:
+        try:
+            temp.unlink()
+        except FileNotFoundError:
+            pass
+        return False, issues, len(normalized)
+    temp.replace(path)
+    return True, [], len(normalized)
 
 
 def score_label(score: int) -> str:

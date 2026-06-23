@@ -18,6 +18,7 @@ Start here:
 - [`docs/week-04-model-evals-runbook.md`](docs/week-04-model-evals-runbook.md) — Week 4 Bedrock model-eval BYOI runbook and managed-job boundary
 - [`docs/week-04-model-evals-first-run.md`](docs/week-04-model-evals-first-run.md) — first managed Bedrock BYOI model-eval receipt
 - [`content/profile.md`](content/profile.md) — canonical public evidence source for the chatbot
+- `python3 scripts/human_label_web_workbench.py --no-open --dataset datasets/synthetic/recruiter-evidence-qa.jsonl --labels datasets/synthetic/human-labels.jsonl --draft build/human-labeling/draft-label-state.json` — Week 5 browser workbench for human labels and dataset-row edits; open `/dataset-editor` for add/delete row management
 - [`AGENTS.md`](AGENTS.md) — repo rules for public safety, teaching style, and coding-agent behavior
 
 ## The bet
@@ -56,6 +57,8 @@ The specimen is a public candidate evidence chatbot.
 **Week 3 instrumentation receipt:** the deployed Lambda now emits public-safe `chat_app_event` records to CloudWatch for Bedrock and guardrail paths. Those events export to normalized JSONL, validate against `schemas/aws-evals/normalized-app-event.schema.json`, score deterministically for citation/refusal/token/latency invariants, and can be queried in Athena from the eval-artifacts S3 prefix. The latest verified slice grouped Bedrock vs. guardrail responses by evidence strength, citation behavior, latency, and token totals.
 
 **Week 4 Bedrock model-eval receipt:** captured chatbot answers now export into Bedrock model-eval BYOI JSONL and a real managed model-as-judge job completed in the sandbox account. The job used precomputed app responses, wrote managed output JSONL to the private eval-artifacts prefix, and showed the expected split: deterministic gates catch hard contract misses while Bedrock grades fuzzy correctness/completeness. The reusable eval service role is now Terraform-managed; per-run job JSON, raw outputs, and real AWS identifiers stay private.
+
+**Week 5 human-label workbench receipt:** a browser workbench now supports rubric-by-rubric human labeling, draft reloads, completed-label export, and a related dataset row editor at `/dataset-editor`. The row editor can add rows, delete rows with a two-click confirmation, validate schema-safe edits before saving, and keep existing row IDs read-only after persistence so labels and drafts do not get orphaned. Use a temp dataset copy for browser smoke tests; commit only curated, public-safe dataset changes.
 
 It should:
 

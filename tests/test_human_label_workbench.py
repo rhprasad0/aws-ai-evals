@@ -172,6 +172,47 @@ class HumanLabelWorkbenchTests(unittest.TestCase):
 
             self.assertTrue(ok, issues)
 
+    def test_dataset_rows_normalize_and_round_trip(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "dataset.jsonl"
+            row = example("row_one")
+            row["must_include"] = "evidence\nsource label\n"
+
+            normalized = workbench.normalize_dataset_rows([row])
+            workbench.write_dataset_jsonl(path, normalized)
+            loaded = workbench.load_examples(path)
+
+            self.assertEqual(loaded[0]["id"], "row_one")
+            self.assertEqual(loaded[0]["must_include"], ["evidence", "source label"])
+            self.assertEqual(list(loaded[0]), list(workbench.DATASET_ROW_KEYS))
+
+    def test_dataset_duplicate_ids_are_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "duplicate dataset id row_one"):
+            workbench.normalize_dataset_rows([example("row_one"), example("row_one")])
+
+    def test_invalid_dataset_save_does_not_overwrite_original(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "dataset.jsonl"
+            original = example("row_one")
+            workbench.write_dataset_jsonl(path, workbench.normalize_dataset_rows([original]))
+            before = path.read_text(encoding="utf-8")
+            invalid = example("row_one")
+            invalid["expected_evidence_strength"] = "unsupported"
+            invalid["expected_sources"] = ["GitHub Profile README"]
+
+            ok, issues, count = workbench.save_dataset_rows(path, [invalid])
+
+            self.assertFalse(ok)
+            self.assertEqual(count, 1)
+            self.assertIn("expected_sources", "\n".join(issues))
+            self.assertEqual(path.read_text(encoding="utf-8"), before)
+
+    def test_source_label_options_are_loaded_from_schema(self) -> None:
+        options = workbench.source_label_options()
+
+        self.assertIn("GitHub Profile README", options)
+        self.assertIn("content/profile.md", options)
+
     def test_web_payload_round_trips_slots(self) -> None:
         payload = {
             "slots": {
@@ -194,12 +235,63 @@ class HumanLabelWorkbenchTests(unittest.TestCase):
         self.assertEqual(slot.expected_outcome, "needs_human_review")
         self.assertEqual(slot.expected_failure_labels, ["material_omission"])
 
+    def test_web_dataset_payload_parses_newline_lists(self) -> None:
+        row = example("row_one")
+        row["must_include"] = "evidence\nsource label"
+        payload = {"datasetRows": [row]}
+
+        rows = web_workbench.dataset_rows_from_payload(payload)
+
+        self.assertEqual(rows[0]["must_include"], ["evidence", "source label"])
+
+    def test_web_dataset_payload_accepts_added_row(self) -> None:
+        added = example("new_recruiter_row")
+        added["expected_sources"] = []
+        added["expected_evidence_strength"] = "calibration_required"
+        payload = {"datasetRows": [example("row_one"), added]}
+
+        rows = web_workbench.dataset_rows_from_payload(payload)
+
+        self.assertEqual([row["id"] for row in rows], ["row_one", "new_recruiter_row"])
+        self.assertEqual(list(rows[1]), list(workbench.DATASET_ROW_KEYS))
+
+    def test_web_dataset_payload_rejects_duplicate_added_row_id(self) -> None:
+        payload = {"datasetRows": [example("row_one"), example("row_one")]}
+
+        with self.assertRaisesRegex(ValueError, "duplicate dataset id row_one"):
+            web_workbench.dataset_rows_from_payload(payload)
+
     def test_web_app_serves_browser_markup(self) -> None:
         markup = web_workbench.app_html()
 
         self.assertIn("Week 5 Human Label Workbench", markup)
+        self.assertIn("Dataset row editor", markup)
+        self.assertIn("/dataset-editor", markup)
+        self.assertIn("Open dataset row editor", markup)
+        self.assertIn("Save dataset changes", markup)
         self.assertIn("Export completed labels", markup)
         self.assertIn("/state", markup)
+        self.assertIn("split('\\n')", markup)
+        self.assertIn("join('\\n')", markup)
+        self.assertNotIn("split('\n')", markup)
+
+    def test_dataset_editor_app_serves_add_delete_markup(self) -> None:
+        markup = web_workbench.dataset_editor_html()
+
+        self.assertIn("Dataset Row Editor", markup)
+        self.assertIn("/state", markup)
+        self.assertIn("/dataset", markup)
+        self.assertIn("/dataset/validate", markup)
+        self.assertIn("Add row", markup)
+        self.assertIn("Delete row", markup)
+        self.assertIn("Confirm delete row", markup)
+        self.assertIn("deleteSelectedRow", markup)
+        self.assertIn("This deletes only the browser copy until you save", markup)
+        self.assertIn("Cannot delete the final row", markup)
+        self.assertIn("Save dataset changes", markup)
+        self.assertIn("Reload dataset from disk", markup)
+        self.assertIn("Evidence strength", markup)
+        self.assertIn("Plain-English helper text", markup)
 
     def test_web_state_loads_draft_progress(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -219,6 +311,8 @@ class HumanLabelWorkbenchTests(unittest.TestCase):
 
             self.assertEqual(payload["slots"]["row_one::correctness"]["score"], 1)
             self.assertEqual(payload["slots"]["row_one::correctness"]["human_rationale"], "Saved draft.")
+            self.assertEqual(payload["datasetRows"][0]["id"], "row_one")
+            self.assertIn("GitHub Profile README", payload["sourceLabelOptions"])
 
 
 if __name__ == "__main__":
