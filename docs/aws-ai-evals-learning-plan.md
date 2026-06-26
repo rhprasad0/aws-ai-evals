@@ -1,8 +1,8 @@
 # AWS AI Evals: 12-Week Hands-On Learning Plan
 
-This is a learning-by-doing path for building an AWS-native and hybrid AI evaluation harness around a real production experiment: a public **ryanprasad.ai candidate evidence chatbot**. The goal is not to click around the Bedrock console and declare victory. The goal is to build a small but serious reference architecture: security and access preflight, datasets, schemas, validators, managed Bedrock eval jobs, AgentCore agent/tool evals, Inspect AI custom evals, orchestration, observability, quota-based cost controls, and public-safe reports.
+This is a learning-by-doing path for building an AWS-native and hybrid AI evaluation harness around a real production experiment: a public **ryanprasad.ai candidate evidence chatbot**. The goal is not to click around the Bedrock console and declare victory. The goal is to build a small but serious reference architecture: security and access preflight, datasets, schemas, validators, managed Bedrock eval jobs, RAG evals, Inspect AI custom evals, orchestration, observability, quota-based cost controls, and public-safe reports.
 
-Bedrock Evaluations and AgentCore Evaluations give you managed scoring, comparison, and reporting workflows. The harness you build around them handles preflight, validation, versioning, CI/CD glue, unsupported scorers, normalized exports, and public-safe evidence beyond the managed outputs.
+Bedrock Evaluations gives you managed scoring, comparison, and reporting workflows for supported model and RAG paths. The harness you build around them handles preflight, validation, versioning, CI/CD glue, unsupported scorers, normalized exports, and public-safe evidence beyond the managed outputs.
 
 ## Production Experiment: ryanprasad.ai Candidate Agent
 
@@ -13,14 +13,22 @@ The live specimen is a public chatbot exposed on `ryanprasad.ai`. It should:
 - distinguish strong evidence, lab/project evidence, weak support, and unsupported claims;
 - refuse unsupported, private, unsafe, or ambiguous requests.
 
-RAG stays first: project Q&A is the main user value and the easiest place to build citation-backed evidence. Calendar booking and Slack relay are deferred Phase 2 tool-use flows; V1 keeps the app boring so the eval harness is the main work.
+RAG stays first: project Q&A is the main user value and the easiest place to build citation-backed evidence. Calendar booking, Slack relay, and other tool-use flows are out of scope for this 12-week iteration. V1 keeps the app boring so the eval harness is the main work.
 
 Product boundaries:
 
 - No private memory, Honcho, Graphiti, local notes, private transcripts, or private repo content may appear in public answers unless explicitly curated into public-safe docs.
-- No Calendar or Slack writes in V1.
+- No Calendar, Slack, or other tool writes in this iteration.
 - GitHub/project Q&A must cite public sources and say "I don't know" when support is missing.
 - Evidence strength must be explicit: public artifact, lab/project artifact, WIP, weak support, or unsupported.
+
+## Second Iteration: Evals Before Deployment
+
+The previous iteration moved too quickly from chatbot implementation into cloud eval machinery. This pass reverses that order. The first milestone is not a polished deployed chatbot; it is a checkable evaluation contract: schemas, synthetic datasets, human-label workflow, deterministic gates, judge calibration, and a minimal specimen that can produce traceable answers.
+
+Deployment and product polish stay behind an eval-contract gate. Before treating the chatbot as a public artifact, the repo should prove that local evals can say useful things about citations, evidence strength, refusals, unsupported claims, and public/private source boundaries.
+
+AgentCore and tool-use evaluation activities are intentionally discarded from this iteration. Future Calendar, Slack, or write-action tools can get their own plan after the model, RAG, labeling, and reporting foundations are boring.
 
 ## North Star
 
@@ -29,7 +37,6 @@ By the end of 12 weeks, you should have a deployable **AWS Eval Harness Referenc
 - evaluate the `ryanprasad.ai` candidate evidence chatbot across public project Q&A, citation support, evidence calibration, refusal, and abuse-handling flows;
 - evaluate model outputs with Amazon Bedrock Evaluations;
 - evaluate RAG retrieval and retrieve-and-generate pipelines;
-- evaluate agent/tool behavior with Amazon Bedrock AgentCore Evaluations;
 - run programmatic and custom evals with Inspect AI on AWS;
 - validate BYOI datasets before jobs run;
 - compare judge scores against human labels;
@@ -53,7 +60,7 @@ Use placeholders and synthetic data throughout:
 
 Do not commit live AWS account IDs, ARNs, bucket names, CloudWatch log output, private traces, local paths, private IPs, Slack IDs, emails, calendar IDs, private hostnames, raw production traces, or secrets.
 
-**Synthetic is not the same as safe.** The safety, refusal, and prompt-injection lanes (Weeks 5 and 8) generate *attacks* by design. In a public, billboard-safe repo, keep that content non-operational: name the attack class and use inert canaries (e.g. `INJECTION_CANARY_DO_NOT_FOLLOW`), never working jailbreaks, exploit code, or copy-pasteable harmful instructions. The rules above keep *real* data out; this one keeps *dangerous* content out. An eval repo must not double as an attack cookbook.
+**Synthetic is not the same as safe.** The safety, refusal, and prompt-injection lanes generate *attacks* by design. In a public, billboard-safe repo, keep that content non-operational: name the attack class and use inert canaries (e.g. `INJECTION_CANARY_DO_NOT_FOLLOW`), never working jailbreaks, exploit code, or copy-pasteable harmful instructions. The rules above keep *real* data out; this one keeps *dangerous* content out. An eval repo must not double as an attack cookbook.
 
 ### Terms and source of truth
 
@@ -66,15 +73,14 @@ Treat these as separate lanes that converge in the capstone:
 
 1. **Model evaluation lane** — Bedrock model evaluation jobs, model-as-judge, built-in metrics, custom metrics, BYOI model responses.
 2. **RAG evaluation lane** — Bedrock Knowledge Base retrieval-only and retrieve-and-generate evaluation for Ryan's public/project-safe GitHub corpus, native comparison/reporting for supported RAG sources/configurations, plus custom RAG BYOI datasets where you supply supported response data.
-3. **Agent/tool evaluation lane** — deferred Phase 2. If Calendar or Slack tools are added later, evaluate tool choice, arguments, consent, and refusal behavior with AgentCore-compatible traces and supported evaluation modes.
-4. **Custom harness lane** — Inspect AI, deterministic scorers, schema validators, custom task runners, SageMaker/ECS/Batch execution.
-5. **Platform lane** — S3, KMS, IAM, Step Functions, small Lambda glue, CloudWatch, CloudTrail, Athena/Glue, Service Quotas, Cost Explorer/Budgets, CI/CD.
+3. **Custom harness lane** — Inspect AI, deterministic scorers, schema validators, custom task runners, SageMaker/ECS/Batch execution.
+4. **Platform lane** — S3, KMS, IAM, Step Functions, small Lambda glue, CloudWatch, CloudTrail, Athena/Glue, Service Quotas, Cost Explorer/Budgets, CI/CD.
 
-Lanes 1–4 are the **evaluation lanes**; lane 5 is cross-cutting glue. Lanes 1–3 lean on *managed* Bedrock and AgentCore jobs — you own preflight, dataset and trace preparation, manifesting, validation, and interpretation; AWS owns the supported scoring/reporting runtime. Start with native Bedrock comparison and reporting workflows where they fit. Add custom orchestration for preflight, versioning, CI/CD, unsupported scorers, repeated-run analysis, cross-service aggregation, and reporting beyond managed outputs. Lane 4 is code you run yourself. Keep their datasets, schemas, and result shapes separate; they only converge at the orchestration and reporting layer, and a score from one lane does not transfer to another.
+Lanes 1–3 are the **evaluation lanes**; lane 4 is cross-cutting glue. Lanes 1–2 lean on *managed* Bedrock jobs — you own preflight, dataset and trace preparation, manifesting, validation, and interpretation; AWS owns the supported scoring/reporting runtime. Start with native Bedrock comparison and reporting workflows where they fit. Add custom orchestration for preflight, versioning, CI/CD, unsupported scorers, repeated-run analysis, cross-service aggregation, and reporting beyond managed outputs. Lane 3 is code you run yourself. Keep their datasets, schemas, and result shapes separate; they only converge at the orchestration and reporting layer, and a score from one lane does not transfer to another.
 
 ## Managed Job Boundaries (Read Before Week 4)
 
-Bedrock model, RAG, and AgentCore evaluations are *managed jobs*, not a magic verdict service. Before you lean on them, internalize the edges:
+Bedrock model and RAG evaluations are *managed jobs*, not a magic verdict service. Before you lean on them, internalize the edges:
 
 - **They run in your account, on your data.** Jobs read inputs from and write outputs to *your* S3, under a service role you scope. Your dataset content flows to the evaluator model. Results come back as managed reports and S3 artifacts that you must govern, validate, retain, and interpret for your scenario.
 - **Use native comparison/reporting first.** Bedrock Evaluations has managed reports and comparison workflows for supported model, configuration, and RAG evaluation paths. If the specific API or BYOI path you choose is scoped to one model, response source, or RAG source, record that boundary in the manifest and coordinate separate jobs only where needed.
@@ -98,7 +104,6 @@ aws-ai-evals/
   schemas/
     model-eval-byoi.schema.json
     rag-retrieve-generate-byoi.schema.json
-    agent-trace-export.schema.json
     run-manifest.schema.json
   datasets/
     synthetic/
@@ -119,9 +124,6 @@ aws-ai-evals/
   inspect/
     recipes/
     tasks/
-  agentcore/
-    evaluators/
-    trace-examples/
   scripts/
     public_safety_scan.py
     validate_dataset.py
@@ -131,8 +133,7 @@ aws-ai-evals/
 This plan starts documentation-first, then turns it into code and deployable infrastructure.
 
 ---
-
-## Week 1 — Candidate Agent Design, Security Envelope, and Repo Contracts
+## Week 1 — Eval/Product Contract, Security Envelope, and Repo Contracts
 
 ### Objective
 
@@ -147,7 +148,7 @@ Most eval systems fail because the app was never instrumented for evaluation, or
 - Amazon Bedrock Evaluations overview
 - Bedrock model access, `ListFoundationModels`, inference profiles, Region availability, and Service Quotas
 - Bedrock model/RAG evaluation IAM service role and KMS requirements
-- Bedrock and AgentCore data protection/encryption docs
+- Bedrock data protection/encryption docs
 - Bedrock model invocation logging
 - CloudWatch Logs, S3, CloudTrail, KMS, IAM, Secrets Manager, and WAF basics
 
@@ -173,8 +174,8 @@ Most eval systems fail because the app was never instrumented for evaluation, or
    - selected AWS Region and why eval data must stay there;
    - S3 bucket layout, object ownership, versioning, lifecycle, and replication disabled unless explicitly approved;
    - customer-managed KMS key placeholders for eval inputs, outputs, CloudWatch exports, and managed job encryption where supported;
-   - per-lane service roles for Bedrock model eval, RAG eval, AgentCore, Inspect/SageMaker, ECS/Batch, and Step Functions;
-   - no V1 tool writes; Calendar and Slack remain Phase 2 only;
+   - per-lane service roles for Bedrock model eval, RAG eval, Inspect/SageMaker, ECS/Batch, and Step Functions;
+   - no V1 tool writes; Calendar, Slack, and other write-action tools are out of scope for this iteration;
    - no tool secrets, OAuth tokens, calendar IDs, Slack destinations, or AWS details in browser code;
    - model access verification for every generator and evaluator model before job creation;
    - `ListFoundationModels` and, where applicable, `ListInferenceProfiles` preflight in the target Region;
@@ -225,11 +226,11 @@ Most eval systems fail because the app was never instrumented for evaluation, or
 - IAM/KMS/Region/model-access/quota/cost controls exist before dataset work begins, including `ListFoundationModels`/inference-profile preflight, the selected Nova 2 Lite profile, scoped runtime IAM, and explicit `maxTokens`.
 - Model access is explicitly checked for both generator and evaluator models in the chosen Region.
 - Data residency is explicit: no accidental cross-region replication, unmanaged CloudWatch retention, or public artifact pipeline for sensitive outputs.
-- No Calendar or Slack writes exist in V1.
+- No Calendar, Slack, or other tool writes exist in this iteration.
 - GitHub/project Q&A cites public sources and says "I don't know" when unsupported.
 - Prompt-stuffed public sources are sanitized, delimited as facts, capped at 50 KB by default, and verified to keep cold-start source-loading impact under 3 seconds.
 - The canonical container-orchestration question returns `aws-devops-lab` and `airgap-aiops` with caveats.
-- The design separates model, RAG, agent, and custom harness lanes while keeping one live specimen.
+- The design separates model, RAG, and custom harness lanes while keeping one live specimen.
 - No live AWS identifiers, private examples, raw traces, real emails, Slack IDs, calendar IDs, private hostnames, or secrets are present.
 - The example run manifest validates against `schemas/run-manifest.schema.json`.
 - Reproducibility is scoped honestly: the manifest pins versions and parameters, but the doc states plainly that hosted models may not reproduce token-for-token.
@@ -262,7 +263,6 @@ Most eval systems fail because the app was never instrumented for evaluation, or
 - Add a one-page candidate-agent product contract that a recruiter can skim.
 
 ---
-
 ## Week 2 — Candidate-Agent Dataset Contracts and Schema Validators
 
 ### Objective
@@ -278,7 +278,6 @@ AWS eval jobs are schema-sensitive, and public evidence bots are claim-sensitive
 - Bedrock model evaluation prompt datasets for model-as-judge
 - Bedrock custom metrics job docs
 - Bedrock RAG retrieve-and-generate prompt dataset docs
-- AgentCore input spans/events and dataset evaluation docs
 
 ### Build tasks
 
@@ -326,9 +325,9 @@ AWS eval jobs are schema-sensitive, and public evidence bots are claim-sensitive
 
 ### Common failure modes
 
-- Mixing model evaluation, RAG evaluation, and agent/tool schemas.
+- Mixing model evaluation and RAG evaluation schemas.
 - Letting the RAG dataset become generic instead of reflecting the chatbot's public project Q&A job.
-- Assuming Bedrock model-eval BYOI means live arbitrary inference. It means you provide `modelResponses` in AWS's expected dataset shape; live app evaluation belongs in AgentCore online/on-demand/batch/dataset evaluation where supported, or in a custom trace/output capture pipeline.
+- Assuming Bedrock model-eval BYOI means live arbitrary inference. It means you provide `modelResponses` in AWS's expected dataset shape; live app evaluation belongs in a custom trace/output capture pipeline that feeds supported BYOI inputs.
 - Forgetting Bedrock model BYOI constraints (e.g. one model response per prompt and one unique model identifier per job — confirm the current rules in the linked docs).
 - Ignoring Bedrock-native comparison/reporting workflows and building external fan-out for comparisons the managed service already supports.
 - Changing a schema without bumping its version or updating fixtures, so old datasets break silently. For any non-synthetic data later, record license/provenance; this repo stays synthetic-only unless the source is explicitly curated as public-safe.
@@ -336,192 +335,213 @@ AWS eval jobs are schema-sensitive, and public evidence bots are claim-sensitive
 ### Stretch goals
 
 - Add unit tests for validators.
-- Add a schema compatibility matrix for Bedrock model eval, RAG eval, AgentCore, and Inspect AI.
+- Add a schema compatibility matrix for Bedrock model eval, RAG eval, and Inspect AI.
 - Add a contract test that blocks unsupported skill claims without citations.
 
 ---
-
-## Week 3 — Production Trace Capture and Observability Baseline
+## Week 3 — Minimal Specimen and Trace Contract
 
 ### Objective
 
-Instrument the `ryanprasad.ai` candidate evidence chatbot so Bedrock invocation logs, chat turns, source labels, evidence-strength labels, refusals, latency, token/cost usage, and errors produce structured evidence. Export traces in OpenTelemetry/OpenInference-compatible form where applicable.
+Create the smallest local or stubbed candidate-agent specimen needed to produce traceable answers, refusals, citations, source labels, evidence-strength labels, latency, token/cost placeholders, and structured errors. This is still not the finished chatbot.
 
 ### Why it matters
 
-You cannot debug what you did not capture. Eval quality depends on trace quality. For this lab, Bedrock invocation logging is valuable because it captures the actual model request/response bodies and metadata. It still does not replace app traces: invocation logs do not know expected citations, evidence-strength labels, scorer results, source allowlists, deployment versions, or pass/fail status. The public repo gets schemas, examples, and normalized reports — raw invocation logs stay in lab S3.
+The first deployable-looking app can seduce the project into product work before the eval shape is honest. A minimal specimen keeps the surface boring while proving that the eval contracts can observe the behaviors that matter: supported project answers, unsupported/private-info refusals, citation support, evidence-strength calibration, and public/private source boundaries.
 
 ### AWS services/docs to study
 
-- Bedrock model invocation logging
-- AgentCore Observability and input spans/events
-- OpenTelemetry/OpenInference instrumentation concepts
-- CloudWatch Logs and Logs Insights
+- Bedrock Converse API response structure
+- Bedrock model invocation logging concepts
+- CloudWatch structured logging concepts
 - S3 object layout patterns
-- CloudTrail audit events
 
 ### Build tasks
 
-1. Enable Bedrock invocation logging for lab/eval runs to same-Region S3 only, with KMS encryption, text delivery enabled, non-text modalities disabled for V1, lifecycle expiration, and a placeholder bucket layout:
-   - `s3://example-eval-bucket/bedrock-invocation-logs/`;
-   - `s3://example-eval-bucket/eval-runs/<run_id>/raw/`;
-   - `s3://example-eval-bucket/eval-runs/<run_id>/normalized/`;
-   - `s3://example-eval-bucket/eval-runs/<run_id>/reports/`.
-2. Define trace events for the candidate agent:
-   - chat turn received;
-   - intent classification;
-   - source query/context, source labels, citations, evidence-strength label, and final answer;
-   - unsupported/private-info refusal and escalation;
-   - latency, token/cost estimate, rate-limit decision, and error fields.
-3. Emit normalized JSON trace exports with:
+1. Define the specimen interface:
+   - input question;
+   - synthetic/public-safe context bundle;
+   - candidate answer;
+   - citations;
+   - source labels;
+   - evidence-strength label;
+   - refusal outcome;
+   - structured error fields.
+2. Emit normalized JSON trace exports with:
    - run/session ID;
-   - prompt or invocation-log reference for lab artifacts;
    - synthetic input in public examples;
    - candidate agent version;
-   - model/provider ID;
+   - model/provider ID placeholder;
    - generated answer;
    - reference answer where applicable;
    - public source citations;
    - source labels or passage IDs;
    - evidence-strength label;
-   - citation list;
    - latency;
    - token/cost estimate placeholders;
    - error fields.
-4. For agent-shaped examples, preserve OpenTelemetry/OpenInference-compatible identifiers and span/event fields:
-   - session ID;
-   - trace ID;
-   - span ID;
-   - scope/name/kind where relevant;
-   - model invocation spans;
-   - retrieval/source-selection spans;
-   - citation/evidence-label events;
-   - refusal/escalation events;
-   - CloudWatch log group and retention placeholders.
-5. Write `docs/observability.md`:
-   - Bedrock invocation logging is enabled for lab/eval runs;
-   - raw invocation logs are useful eval artifacts, not public report material;
-   - same-Region S3 destination, run-prefix layout, lifecycle expiration, and access boundaries;
-   - how the logging destination inherits prompt/response sensitivity (KMS-encrypt it, lock IAM, bound retention, keep it out of public artifact pipelines, and avoid CloudWatch delivery for raw model I/O);
-   - CloudWatch/S3/Athena query plan;
-   - how normalized trace exports and invocation-log-derived BYOI datasets feed Bedrock/RAG/AgentCore/Inspect eval lanes.
-6. Add sample CloudWatch Logs Insights and Athena queries as documentation, using placeholders only.
+3. Keep the specimen source loading capped and measurable:
+   - public facts only;
+   - explicit source delimiters;
+   - prompt-instruction sanitization;
+   - 50 KB default source cap;
+   - cold-start source-loading target under 3 seconds.
+4. Write `schemas/trace-export.schema.json` for the normalized public-safe trace export.
+5. Add `docs/specimen-trace-contract.md` explaining how trace fields feed deterministic scorers, Bedrock BYOI adapters, RAG adapters, Inspect tasks, and public-safe reports.
 
 ### Validation checks
 
-- Traces validate against your schema.
+- The specimen can produce a supported answer with citations.
+- The specimen can produce an unsupported/private-info refusal or "I don't know" outcome.
 - A failed candidate call produces a structured error record.
+- Trace exports validate against `schemas/trace-export.schema.json`.
 - Public examples do not contain raw invocation logs, visitor content, live identifiers, or sensitive data.
-- Evidence traces show source labels, citations, and evidence-strength labels.
-- RAG/app traces contain citations for supported answers and refusal/"I don't know" outcomes for unsupported questions.
-- Bedrock invocation logs can be correlated to app-level eval records by run ID or request metadata.
-- Invocation logging uses S3-only delivery for raw model I/O; CloudWatch contains structured app events, not full prompts/responses.
-- Agent traces keep OpenTelemetry/OpenInference compatibility; local JSON schemas describe sanitized exports, not a replacement telemetry standard.
-- You can answer: "What failed, how often, and where is the evidence?"
 
 ### Public-safe artifacts to commit
 
-- `src/trace_writer.py` or equivalent
+- `src/trace_writer.py` or equivalent minimal trace helper
 - `schemas/trace-export.schema.json`
-- `docs/observability.md`
-- `docs/queries.md`
+- `docs/specimen-trace-contract.md`
 
 ### Common failure modes
 
-- Logging everything forever without S3 lifecycle expiration and a lab-artifact policy.
-- Committing raw production traces because they are "just examples."
-- Assuming model invocation logging replaces app-level eval traces or covers every possible Bedrock endpoint.
-- Designing a custom agent trace schema first and then trying to map it back to AgentCore after the fact.
-- Treating the invocation-logging destination as plumbing when it actually holds full prompts and responses — a sensitive lab artifact store that needs KMS, lifecycle, least-privilege access, and separation from CloudWatch app logs.
+- Treating the minimal specimen as a product surface.
+- Logging everything forever before there is a lab-artifact policy.
+- Committing raw traces because they are "just examples."
 - Failing to record inference parameters, making reruns non-reproducible.
 
 ### Stretch goals
 
-- Add OpenTelemetry trace IDs to local traces.
+- Add trace IDs to local traces.
 - Generate a tiny static HTML report from sample traces.
-- Add a sanitized production-trace summary format with no raw visitor content.
 
 ---
-
-## Week 4 — Bedrock Model Evaluations: Managed Judge Jobs
+## Week 4 — Local Harness and Deterministic Gates
 
 ### Objective
 
-Prepare and run the model evaluation lane using Bedrock Evaluations for candidate-agent responses that are not primarily retrieval or tool-trajectory checks.
+Build the local harness and deterministic scorers that gate the candidate specimen before cloud jobs or deployment polish.
 
 ### Why it matters
 
-Managed eval jobs are useful, but only when you understand their schemas, job boundaries, and reporting model. The durable, committable artifact this week is a *validated adapter output + a placeholder job template + a runbook* — running a live job is optional, belongs in a sandbox account, and its outputs stay out of this repo (see Managed Job Boundaries).
+LLM judges are flexible. Deterministic scorers are boring in the best possible way. You want both.
 
 ### AWS services/docs to study
 
-- Bedrock model evaluation jobs
-- Model-as-judge prompt datasets
-- Built-in metrics and custom metrics
-- S3 input/output configuration
-- IAM permissions for Bedrock eval jobs
+- Lambda for lightweight validation and dispatch
+- Step Functions task states
+- S3 event-driven workflows
+- CloudWatch metrics
 
 ### Build tasks
 
-1. Create a model evaluation dataset adapter:
-   - from normalized candidate-agent trace exports and lab Bedrock invocation logs;
-   - to Bedrock model evaluation JSONL.
-2. Create a BYOI model evaluation adapter:
-   - one `modelResponses` entry per prompt;
-   - one `modelIdentifier` value per job;
-   - AWS-documented BYOI fields: `prompt`, optional `referenceResponse`, optional `category`, and `modelResponses[].response`/`modelResponses[].modelIdentifier`;
-   - evidence that Bedrock skips model invocation for supplied `modelResponses`;
-   - support for importing captured chatbot answers from Bedrock invocation logs and app traces as BYOI responses;
-   - a native Bedrock comparison/reporting plan first, with separate manifests only where the selected API/BYOI path requires separate jobs.
-3. Write a Bedrock model eval job template:
-   - dataset S3 URI placeholder;
-   - output S3 URI placeholder;
-   - evaluator model placeholder;
-   - built-in metric selection;
-   - custom metric references.
-4. Add `docs/week-04-model-evals-runbook.md` with CLI/SDK pseudocode and expected outputs.
+1. Implement scorers for:
+   - exact match;
+   - JSON schema validity;
+   - required field presence;
+   - refusal phrase detection;
+   - citation format validity;
+   - citation source allowlist/no-private-source checks;
+   - no-secret/no-private-identifier checks;
+   - citation presence and source-label validity;
+   - evidence-strength label validity;
+   - no unsupported production-claim upgrades.
+2. Package scorers as local CLI functions first.
+3. Design optional Lambda wrappers only for tiny deterministic checks or event dispatch glue.
+4. Define when **not** to use Lambda:
+   - long-running evals;
+   - large batch processing;
+   - heavy model simulations;
+   - complex Inspect AI tasks.
+5. Route sustained evaluation work to managed Bedrock jobs, SageMaker, ECS, or AWS Batch.
 
 ### Validation checks
 
-- Adapter output validates locally against the AWS-documented BYOI shape, including `prompt`, `referenceResponse`, `category`, and `modelResponses`.
-- Job templates contain placeholders, not real account details.
-- Candidate-agent examples are scoped to supported intents; raw captured outputs stay in lab S3 and normalized/public examples are safe to commit.
-- Multi-model or multi-config comparison starts with Bedrock-native reports/comparison where supported; any extra manifests explain why custom coordination is needed.
-- Output handling expects managed reports and S3 result artifacts, not console screenshots.
-
-### Closeout status
-
-Closed. The committed Week 4 slice includes the BYOI adapter, placeholder `create-evaluation-job` template, runbook, first-run receipt, and Terraform-managed Bedrock eval IAM role. A sandbox Bedrock model-as-judge BYOI job completed over captured chatbot responses, produced managed output JSONL, and confirmed the expected boundary: deterministic gates catch hard response-contract misses while Bedrock scores fuzzy correctness/completeness. Raw job outputs, real AWS identifiers, and S3 artifacts remain private/sandbox-only.
-
-Carry into Week 5: repeated runs, stronger/independent judge comparison, human-label agreement, and variance analysis before any judge score becomes a regression gate.
+- Scorers are deterministic and unit-tested.
+- Scorer outputs include version, inputs, score, and explanation.
+- Citation and evidence-calibration scorer failures can block a candidate-chatbot release before recruiter-facing answers ship.
+- Lambda design is explicitly optional and small; sustained eval runtime is assigned to managed Bedrock jobs, SageMaker, ECS, or AWS Batch.
 
 ### Public-safe artifacts to commit
 
-- `src/adapters/bedrock_model_eval.py`
-- `infra/templates/bedrock-model-eval-job.json`
-- `docs/week-04-model-evals-runbook.md`
-- `docs/week-04-model-evals-first-run.md`
-- `infra/terraform/ryanprasad-chatbot/bedrock_eval.tf`
+- `src/scorers/*.py`
+- `tests/test_scorers.py`
+- `docs/scorer-library.md`
+- `infra/templates/lambda-scorer-wrapper.md` if you include tiny Lambda evaluators/glue
 
 ### Common failure modes
 
-- Overclaiming that Bedrock model eval jobs are a universal benchmark runner.
-- Ignoring prompt count limits.
-- Forgetting that judge models and rubrics are versioned dependencies.
-- Forgetting that evaluator-model and metric availability vary by region, and that every job bills real tokens — bound dataset size, check `ListFoundationModels`/model access/quotas, and estimate cost before submission.
+- Using LLM-as-judge for things a regex/schema can catch perfectly.
+- Putting heavyweight eval runners in Lambda because “serverless” sounds tidy.
+- Failing to version scorers.
 
 ### Stretch goals
 
-- Build a local summarizer that compares two completed job result folders.
-- Add confidence interval calculations for repeated runs.
+- Add scorer result aggregation.
+- Emit CloudWatch Embedded Metric Format examples with synthetic values.
 
 ---
-
-## Week 5 — Custom Metrics and Judge Rubric Engineering
+## Week 5 — Human Labeling Workflow
 
 ### Objective
 
-Design, validate, and version custom LLM-as-judge metrics.
+Build the human-label workflow before trusting any LLM judge or managed score. Human labels are the calibration center, not cleanup after the cloud receipts arrive.
+
+### Why it matters
+
+A judge score without labels is a vibes meter with billing. For this chatbot, labels need to capture correctness, completeness, citation support, refusal appropriateness, and evidence-strength calibration across pass, partial, and fail cases.
+
+### AWS services/docs to study
+
+- Bedrock human evaluation workflow concepts
+- Bedrock custom metric rating scales and output schemas
+- Dataset provenance and public-safe fixture practices
+
+### Build tasks
+
+1. Build or adapt `scripts/human_label_workbench.py` for browser/headless use.
+2. Create a calibration dataset with at least 50 synthetic examples covering:
+   - public project Q&A;
+   - citation support;
+   - evidence-strength calibration;
+   - unsupported/private-info requests;
+   - inert prompt-injection classes;
+   - expected failure labels.
+3. Store human labels separately from generated model outputs.
+4. Include inline explanations for every exposed label value so reviewers do not have to decode mystery numbers.
+5. Add validation that final labels are complete and schema-valid, while draft/in-progress labels can remain incomplete during manual review.
+
+### Validation checks
+
+- Human labels are stored separately from generated model outputs.
+- Final calibration labels validate locally.
+- In-progress empty or partial label files are allowed only during manual relabeling.
+- Reviewer-facing UI explains score values and does not silently coerce external/provider score scales into repo labels.
+- The first judge calibration report can identify which labels the judge gets wrong.
+
+### Public-safe artifacts to commit
+
+- `datasets/synthetic/human-labels.jsonl`
+- `scripts/human_label_workbench.py`
+- `docs/human-labeling-workflow.md`
+
+### Common failure modes
+
+- Treating scaffold labels as human calibration.
+- Hiding what `0`, `1`, or `2` means in the UI.
+- Mixing generated model outputs into the human-label source of truth.
+- Letting stale label files block prompt/dataset review when the goal is not continuation labeling.
+
+### Stretch goals
+
+- Add a label-review receipt that summarizes remaining unlabeled or high-disagreement rows.
+
+---
+## Week 6 — Judge Rubrics and Calibration
+
+### Objective
+
+Design, validate, version, and calibrate custom LLM-as-judge metrics against the human-label workflow.
 
 ### Why it matters
 
@@ -548,7 +568,7 @@ A judge prompt is production logic. Treat it like code, not a magic incantation.
    - judge instructions;
    - output schema;
    - examples of good/bad judgments.
-3. Build a calibration dataset:
+3. Use the human-label calibration dataset:
    - 50 synthetic examples;
    - examples from public project Q&A, citation support, evidence-strength calibration, unsupported/private-info, and inert injection classes;
    - human labels assembled with `scripts/human_label_workbench.py` instead of hand-written JSONL;
@@ -597,8 +617,80 @@ A judge prompt is production logic. Treat it like code, not a magic incantation.
 - Add bootstrap confidence intervals.
 
 ---
+## Week 7 — Bedrock Model Evaluations: Managed Judge Jobs
 
-## Week 6 — Bedrock RAG Evaluations: Retrieval and Retrieve-and-Generate
+### Objective
+
+Prepare and run the model evaluation lane using Bedrock Evaluations for candidate-agent responses that are not primarily retrieval checks.
+
+### Why it matters
+
+Managed eval jobs are useful, but only when you understand their schemas, job boundaries, and reporting model. The durable, committable artifact this week is a *validated adapter output + a placeholder job template + a runbook* — running a live job is optional, belongs in a sandbox account, and its outputs stay out of this repo (see Managed Job Boundaries).
+
+### AWS services/docs to study
+
+- Bedrock model evaluation jobs
+- Model-as-judge prompt datasets
+- Built-in metrics and custom metrics
+- S3 input/output configuration
+- IAM permissions for Bedrock eval jobs
+
+### Build tasks
+
+1. Create a model evaluation dataset adapter:
+   - from normalized candidate-agent trace exports and lab Bedrock invocation logs;
+   - to Bedrock model evaluation JSONL.
+2. Create a BYOI model evaluation adapter:
+   - one `modelResponses` entry per prompt;
+   - one `modelIdentifier` value per job;
+   - AWS-documented BYOI fields: `prompt`, optional `referenceResponse`, optional `category`, and `modelResponses[].response`/`modelResponses[].modelIdentifier`;
+   - evidence that Bedrock skips model invocation for supplied `modelResponses`;
+   - support for importing captured chatbot answers from Bedrock invocation logs and app traces as BYOI responses;
+   - a native Bedrock comparison/reporting plan first, with separate manifests only where the selected API/BYOI path requires separate jobs.
+3. Write a Bedrock model eval job template:
+   - dataset S3 URI placeholder;
+   - output S3 URI placeholder;
+   - evaluator model placeholder;
+   - built-in metric selection;
+   - custom metric references.
+4. Add `docs/week-07-model-evals-runbook.md` with CLI/SDK pseudocode and expected outputs.
+
+### Validation checks
+
+- Adapter output validates locally against the AWS-documented BYOI shape, including `prompt`, `referenceResponse`, `category`, and `modelResponses`.
+- Job templates contain placeholders, not real account details.
+- Candidate-agent examples are scoped to supported intents; raw captured outputs stay in lab S3 and normalized/public examples are safe to commit.
+- Multi-model or multi-config comparison starts with Bedrock-native reports/comparison where supported; any extra manifests explain why custom coordination is needed.
+- Output handling expects managed reports and S3 result artifacts, not console screenshots.
+
+### Historical closeout note from the prior iteration
+
+The prior iteration reached a Week 7-style live slice with the BYOI adapter, placeholder `create-evaluation-job` template, runbook, first-run receipt, and Terraform-managed Bedrock eval IAM role. A sandbox Bedrock model-as-judge BYOI job completed over captured chatbot responses, produced managed output JSONL, and confirmed the expected boundary: deterministic gates catch hard response-contract misses while Bedrock scores fuzzy correctness/completeness. Raw job outputs, real AWS identifiers, and S3 artifacts remain private/sandbox-only.
+
+Carry into this evals-first ordering: repeated runs, stronger/independent judge comparison, human-label agreement, and variance analysis before any judge score becomes a regression gate.
+
+### Public-safe artifacts to commit
+
+- `src/adapters/bedrock_model_eval.py`
+- `infra/templates/bedrock-model-eval-job.json`
+- `docs/week-07-model-evals-runbook.md`
+- `docs/week-07-model-evals-first-run.md`
+- `infra/terraform/ryanprasad-chatbot/bedrock_eval.tf`
+
+### Common failure modes
+
+- Overclaiming that Bedrock model eval jobs are a universal benchmark runner.
+- Ignoring prompt count limits.
+- Forgetting that judge models and rubrics are versioned dependencies.
+- Forgetting that evaluator-model and metric availability vary by region, and that every job bills real tokens — bound dataset size, check `ListFoundationModels`/model access/quotas, and estimate cost before submission.
+
+### Stretch goals
+
+- Build a local summarizer that compares two completed job result folders.
+- Add confidence interval calculations for repeated runs.
+
+---
+## Week 8 — Bedrock RAG Evaluations: Retrieval and Retrieve-and-Generate
 
 ### Objective
 
@@ -679,159 +771,103 @@ RAG failures split into retrieval failures and generation failures. If you only 
 - Add a “retrieval changed but answer did not” analysis.
 
 ---
-
-## Week 7 — Deterministic Scorers and Small Event Glue
+## Week 9 — Observability and Lab Trace Capture
 
 ### Objective
 
-Build deterministic scorers that complement LLM judges, with Lambda limited to tiny code-based evaluators or event glue.
+Instrument lab/eval runs so Bedrock invocation logs, chat turns, source labels, evidence-strength labels, refusals, latency, token/cost usage, and errors produce structured evidence.
 
 ### Why it matters
 
-LLM judges are flexible. Deterministic scorers are boring in the best possible way. You want both.
+You cannot debug what you did not capture. Eval quality depends on trace quality. For this lab, Bedrock invocation logging is valuable because it captures the actual model request/response bodies and metadata. It still does not replace app traces: invocation logs do not know expected citations, evidence-strength labels, scorer results, source allowlists, deployment versions, or pass/fail status. The public repo gets schemas, examples, and normalized reports — raw invocation logs stay in lab S3.
 
 ### AWS services/docs to study
 
-- Lambda for lightweight validation and dispatch
-- AgentCore code-based evaluator Lambda contract
-- Step Functions task states
-- S3 event-driven workflows
-- CloudWatch metrics
+- Bedrock model invocation logging
+- CloudWatch Logs and Logs Insights
+- S3 object layout patterns
+- CloudTrail audit events
 
 ### Build tasks
 
-1. Implement scorers for:
-   - exact match;
-   - JSON schema validity;
-   - required field presence;
-   - refusal phrase detection;
-   - citation format validity;
-   - citation source allowlist/no-private-source checks;
-   - no-secret/no-private-identifier checks;
-   - citation presence and source-label validity;
-   - evidence-strength label validity;
-   - no unsupported production-claim upgrades.
-2. Package scorers as local CLI functions first.
-3. Design optional Lambda wrappers only for tiny deterministic checks, AgentCore code-based evaluators, or event dispatch glue.
-4. Define when **not** to use Lambda:
-   - long-running evals;
-   - large batch processing;
-   - heavy model/tool simulations;
-   - complex Inspect AI tasks.
-5. Route sustained evaluation work to managed Bedrock/AgentCore jobs, SageMaker, ECS, or AWS Batch.
+1. Enable Bedrock invocation logging for lab/eval runs to same-Region S3 only, with KMS encryption, text delivery enabled, non-text modalities disabled for V1, lifecycle expiration, and a placeholder bucket layout:
+   - `s3://example-eval-bucket/bedrock-invocation-logs/`;
+   - `s3://example-eval-bucket/eval-runs/<run_id>/raw/`;
+   - `s3://example-eval-bucket/eval-runs/<run_id>/normalized/`;
+   - `s3://example-eval-bucket/eval-runs/<run_id>/reports/`.
+2. Define trace events for the candidate agent:
+   - chat turn received;
+   - intent classification;
+   - source query/context, source labels, citations, evidence-strength label, and final answer;
+   - unsupported/private-info refusal and escalation;
+   - latency, token/cost estimate, rate-limit decision, and error fields.
+3. Emit normalized JSON trace exports with:
+   - run/session ID;
+   - prompt or invocation-log reference for lab artifacts;
+   - synthetic input in public examples;
+   - candidate agent version;
+   - model/provider ID;
+   - generated answer;
+   - reference answer where applicable;
+   - public source citations;
+   - source labels or passage IDs;
+   - evidence-strength label;
+   - citation list;
+   - latency;
+   - token/cost estimate placeholders;
+   - error fields.
+4. Preserve trace identifiers and request metadata sufficient to correlate app-level eval records with lab S3 invocation-log references.
+5. Write `docs/observability.md`:
+   - Bedrock invocation logging is enabled for lab/eval runs;
+   - raw invocation logs are useful eval artifacts, not public report material;
+   - same-Region S3 destination, run-prefix layout, lifecycle expiration, and access boundaries;
+   - how the logging destination inherits prompt/response sensitivity (KMS-encrypt it, lock IAM, bound retention, keep it out of public artifact pipelines, and avoid CloudWatch delivery for raw model I/O);
+   - CloudWatch/S3/Athena query plan;
+   - how normalized trace exports and invocation-log-derived BYOI datasets feed Bedrock/RAG/Inspect eval lanes.
+6. Add sample CloudWatch Logs Insights and Athena queries as documentation, using placeholders only.
 
 ### Validation checks
 
-- Scorers are deterministic and unit-tested.
-- Scorer outputs include version, inputs, score, and explanation.
-- Citation and evidence-calibration scorer failures can block a candidate-chatbot release before recruiter-facing answers ship.
-- Lambda design is explicitly optional and small; sustained eval runtime is assigned to managed Bedrock/AgentCore jobs, SageMaker, ECS, or AWS Batch.
+- Traces validate against your schema.
+- A failed candidate call produces a structured error record.
+- Public examples do not contain raw invocation logs, visitor content, live identifiers, or sensitive data.
+- Evidence traces show source labels, citations, and evidence-strength labels.
+- RAG/app traces contain citations for supported answers and refusal/"I don't know" outcomes for unsupported questions.
+- Bedrock invocation logs can be correlated to app-level eval records by run ID or request metadata.
+- Invocation logging uses S3-only delivery for raw model I/O; CloudWatch contains structured app events, not full prompts/responses.
+- You can answer: "What failed, how often, and where is the evidence?"
 
 ### Public-safe artifacts to commit
 
-- `src/scorers/*.py`
-- `tests/test_scorers.py`
-- `docs/scorer-library.md`
-- `infra/templates/lambda-scorer-wrapper.md` if you include tiny Lambda evaluators/glue
+- `src/trace_writer.py` or equivalent
+- `schemas/trace-export.schema.json`
+- `docs/observability.md`
+- `docs/queries.md`
 
 ### Common failure modes
 
-- Using LLM-as-judge for things a regex/schema can catch perfectly.
-- Putting heavyweight eval runners in Lambda because “serverless” sounds tidy.
-- Failing to version scorers.
+- Logging everything forever without S3 lifecycle expiration and a lab-artifact policy.
+- Committing raw production traces because they are "just examples."
+- Assuming model invocation logging replaces app-level eval traces or covers every possible Bedrock endpoint.
+- Treating the invocation-logging destination as plumbing when it actually holds full prompts and responses — a sensitive lab artifact store that needs KMS, lifecycle, least-privilege access, and separation from CloudWatch app logs.
+- Failing to record inference parameters, making reruns non-reproducible.
 
 ### Stretch goals
 
-- Add scorer result aggregation.
-- Emit CloudWatch Embedded Metric Format examples with synthetic values.
+- Add OpenTelemetry trace IDs to local traces.
+- Generate a tiny static HTML report from sample traces.
+- Add a sanitized production-trace summary format with no raw visitor content.
 
 ---
-
-## Week 8 — AgentCore Evaluations for Agents and Tool Use
+## Week 10 — Inspect AI and Custom Programmatic Evals
 
 ### Objective
 
-Keep AgentCore/tool evaluation as an explicit Phase 2 lane. V1 should first prove the citation-backed recruiter-evidence chatbot; if Calendar or Slack tools return later, evaluate those tool trajectories in the same pipeline.
+Run advanced/custom evals with Inspect AI or equivalent custom runners on AWS infrastructure.
 
 ### Why it matters
 
-Agent eval is not just "did the final answer sound okay?" You need traces: tool choice, arguments, order, confirmation state, recovery behavior, safety boundaries, and state transitions. AgentCore Evaluations is not a separate island; it plugs into the same manifest, security, quota, reporting, and regression-gate pipeline as the model and RAG lanes. The durable, checkable artifact this week is OpenTelemetry/OpenInference-compatible synthetic traces, evaluator specs, and a runbook. A live managed agent eval is useful, but not required for a public-safe learning artifact.
-
-### AWS services/docs to study
-
-- Bedrock AgentCore Evaluations
-- AgentCore online, on-demand, batch, and dataset evaluation modes
-- OpenTelemetry and OpenInference trace/span/event concepts
-- AgentCore Observability and CloudWatch Transaction Search
-- Strands and LangGraph integration patterns
-- Evaluation modes and framework integrations as currently documented — AgentCore Evaluations is newer and evolving, so confirm exact mode names, supported integrations, and trace formats in the linked doc rather than trusting this list
-
-### Build tasks
-
-1. Define an agent task suite:
-   - project Q&A should use public evidence, not tool actions;
-   - unsupported evidence should refuse or say "I don't know";
-   - citation support should be present for material claims;
-   - wrong-action detection if a future tool is added;
-   - tool argument validity only for Phase 2 synthetic tools;
-   - multi-turn state tracking;
-   - safe refusal;
-   - recovery from tool failure;
-   - prompt-injection resistance using inert canaries.
-2. Create synthetic OpenTelemetry/OpenInference-compatible trace examples.
-3. Build an adapter from internal normalized exports to AgentCore-compatible spans/events without making the custom export schema the primary trace model.
-4. Define custom agent evaluators:
-   - wrong action;
-   - unsafe tool call;
-   - missing confirmation for any future write action;
-   - hallucinated external action;
-   - failed recovery.
-5. Show how the same run manifest records AgentCore evaluator IDs, evaluation mode, CloudWatch log group placeholders, KMS/retention decisions, and token usage.
-6. Write `docs/agentcore-evals-runbook.md`.
-
-### Validation checks
-
-- Agent tasks inspect trace behavior, not only final text.
-- Tool-call arguments are checked deterministically where possible.
-- Tool choice is correct for RAG answer, refusal, unsupported intents, and any optional Phase 2 tool flows.
-- Optional tool trajectories prove consent, valid arguments, and rate-limit handling before any future write feature ships.
-- Safety evals distinguish “refused safely” from “failed to complete.”
-- AgentCore outputs join the same run-result/reporting path as Bedrock model and RAG evaluations.
-- Simulation mode is treated as useful but not equivalent to production behavior.
-- Synthetic traces remain OpenTelemetry/OpenInference-compatible and validate against `schemas/agent-trace-export.schema.json` as a public-safe export contract.
-
-### Public-safe artifacts to commit
-
-- `agentcore/trace-examples/*.json`
-- `agentcore/evaluators/*.md`
-- `src/adapters/agent_trace_adapter.py`
-- `docs/agentcore-evals-runbook.md`
-
-### Common failure modes
-
-- Treating agents as chatbots with extra steps.
-- Ignoring tool arguments and side effects.
-- Treating AgentCore as a separate reporting island instead of feeding its results back into the shared manifest and evidence model.
-- Committing real agent traces — tool inputs/outputs and intermediate state routinely carry sensitive data; keep repo traces synthetic/public-safe and raw lab traces in S3.
-- Committing working prompt-injection or jailbreak payloads. The resistance suite describes attacks; keep the committed version inert (attack class plus a canary string), not a copy-pasteable exploit. See Working Assumptions.
-- Calling simulated success “production ready.”
-
-### Stretch goals
-
-- Add a tiny Strands or LangGraph demo agent with synthetic tools.
-- Add a replay harness for saved traces.
-
----
-
-## Week 9 — Inspect AI on AWS for Programmatic Evals
-
-### Objective
-
-Run advanced/custom evals with Inspect AI on AWS infrastructure.
-
-### Why it matters
-
-Some evals are programs: multi-step tasks, tool-use games, sandboxed code checks, adversarial policies, and custom scoring logic. Managed judge jobs are not enough.
+Some evals are programs: multi-step tasks, sandboxed code checks, adversarial policies, and custom scoring logic. Managed judge jobs are not enough.
 
 ### AWS services/docs to study
 
@@ -846,7 +882,6 @@ Some evals are programs: multi-step tasks, tool-use games, sandboxed code checks
 1. Write one Inspect AI task for:
    - model-only response quality for candidate-agent turns;
    - RAG answer checking for public GitHub/project Q&A;
-   - optional Phase 2 agent/tool-use replay from synthetic/public-safe traces.
 2. Create an Inspect recipe YAML with:
    - model configuration placeholder;
    - dataset path placeholder;
@@ -884,12 +919,11 @@ Some evals are programs: multi-step tasks, tool-use games, sandboxed code checks
 - Build a task that compares two candidate systems through separate run manifests.
 
 ---
-
-## Week 10 — Orchestration, Manifests, and Repeatable Evidence
+## Week 11 — Orchestration, CI, and Regression Gates
 
 ### Objective
 
-Build the orchestration layer that turns candidate-agent traces, datasets, and eval pieces into repeatable runs.
+Build the orchestration and CI layer that turns candidate-agent traces, datasets, and eval pieces into repeatable runs with regression gates.
 
 ### Why it matters
 
@@ -912,7 +946,6 @@ A harness is the system that runs deterministic preflight and data-processing st
    - generate synthetic candidate responses or import normalized lab trace exports;
    - dispatch Bedrock model eval jobs;
    - dispatch RAG eval jobs for public project Q&A;
-   - dispatch optional AgentCore evals for Phase 2 tool trajectories and refusal paths;
    - dispatch Inspect/custom tasks;
    - aggregate results;
    - publish report.
@@ -921,7 +954,9 @@ A harness is the system that runs deterministic preflight and data-processing st
    - create run manifest;
    - write result summary.
 3. Create `schemas/run-result.schema.json`.
-4. Write `docs/orchestration.md`.
+4. Add local CI checks: dataset validation, unit tests, public-safety scan, and markdown/link checks if available.
+5. Define regression gates for deterministic scorer thresholds, calibrated judge thresholds, citation/no-private-source gates, confidence interval movement, and cost/latency budgets.
+6. Write `docs/orchestration.md`, `docs/regression-gates.md`, and `docs/cost-controls.md`.
 
 ### Validation checks
 
@@ -939,6 +974,10 @@ A harness is the system that runs deterministic preflight and data-processing st
 - `src/manifests/*.py`
 - `scripts/run_local_harness.py`
 - `docs/orchestration.md`
+- `.github/workflows/validate.yml` or equivalent placeholder workflow
+- `docs/regression-gates.md`
+- `docs/cost-controls.md`
+- `scripts/check_regression_gate.py`
 
 ### Common failure modes
 
@@ -948,52 +987,7 @@ A harness is the system that runs deterministic preflight and data-processing st
 - Losing managed-job IDs, so you cannot fetch the result artifacts you already paid for.
 - Using Step Functions to rebuild comparison/reporting that Bedrock already provides for the selected evaluation path.
 
-### Stretch goals
-
-- Add a static report generator.
-- Add Athena table definitions for S3 result layout.
-
----
-
-## Week 11 — CI/CD, Regression Gates, Monitoring, and Cost Controls
-
-### Objective
-
-Turn the harness into a system that can block bad changes and explain cost/performance drift.
-
-### Why it matters
-
-Evals become real when they affect shipping decisions. Otherwise they are a dashboard-shaped screensaver.
-
-### AWS services/docs to study
-
-- CodeBuild/CodePipeline or GitHub Actions with AWS OIDC
-- CloudWatch metrics and alarms
-- Service Quotas, AWS Budgets, Cost Explorer, and cost allocation tags
-- IAM least privilege and KMS encryption
-
-### Build tasks
-
-1. Add local CI checks:
-   - dataset validation;
-   - unit tests;
-   - public-safety scan;
-   - markdown/link checks if available.
-2. Define regression gates:
-   - deterministic scorer thresholds;
-   - judge score thresholds backed by calibration and repeated-run variance;
-   - citation/no-private-source gates for public project answers;
-   - citation support, source-label validity, and evidence-strength calibration gates;
-   - allowed confidence interval movement;
-   - cost/latency budgets.
-3. Design AWS CI/CD path:
-   - CodeBuild or GitHub Actions OIDC;
-   - deploy/update eval infrastructure;
-   - trigger scheduled synthetic eval runs and normalized lab-trace eval runs;
-   - publish summary report.
-4. Write `docs/regression-gates.md` and `docs/cost-controls.md`.
-
-### Validation checks
+### Additional CI/CD validation checks
 
 - CI fails on invalid datasets.
 - CI fails on unsafe public examples.
@@ -1001,30 +995,15 @@ Evals become real when they affect shipping decisions. Otherwise they are a dash
 - Cost controls separate experiment budget from any production monitoring path.
 - Monitoring tracks refusal rate, unsupported-question rate, citation failures, evidence-strength calibration failures, rate-limit decisions, latency, token usage, and cost; raw model I/O remains in lab S3 invocation logs.
 - Every run records a per-run cost estimate, Service Quotas checks, maximum prompt count, maximum candidate/config count, maximum repeated-run count, and required approval state before submitting managed jobs.
-- Tags are included for allocation, but they are not the control plane; quotas, budgets, pre-submit estimates, and hard manifest limits stop runaway jobs.
-- Committed IAM/KMS templates use scoped, per-lane roles and customer-managed KMS key placeholders, with wildcard (`*`) exceptions documented and justified if AWS requires them.
-
-### Public-safe artifacts to commit
-
-- `.github/workflows/validate.yml` or equivalent placeholder workflow
-- `docs/regression-gates.md`
-- `docs/cost-controls.md`
-- `scripts/check_regression_gate.py`
-
-### Common failure modes
-
-- Setting arbitrary thresholds without calibration.
-- Letting eval cost grow invisibly because tags exist but no quota, estimate, budget, or max-run guardrail blocks submission.
-- Shipping IAM policies with wildcard actions/resources because least privilege is annoying.
-- Treating CloudWatch alarms as quality evals instead of operational signals.
 
 ### Stretch goals
 
+- Add a static report generator.
+- Add Athena table definitions for S3 result layout.
 - Add a small synthetic “before/after” report showing a regression caught by CI.
 - Add cost-per-eval-run estimates.
 
 ---
-
 ## Week 12 — Capstone: AWS Eval Harness Reference Architecture
 
 ### Objective
@@ -1051,7 +1030,6 @@ Review everything from Weeks 1-11, then focus on integration gaps.
    - SageMaker/ECS/Batch custom eval runner option;
    - Bedrock model eval job templates;
    - Bedrock RAG eval job templates;
-   - AgentCore evaluator config/examples;
    - Inspect AI recipe/task;
    - schemas and validators;
    - run manifest and result summarizer;
@@ -1100,7 +1078,6 @@ Review everything from Weeks 1-11, then focus on integration gaps.
 - Add a “teach this as a workshop” facilitator guide.
 
 ---
-
 ## Capstone Package Checklist
 
 The finished package should include:
@@ -1123,7 +1100,6 @@ The finished package should include:
 - **Adapter layer**
   - internal trace to Bedrock model eval;
   - internal trace to Bedrock RAG eval;
-  - normalized trace export to AgentCore-compatible OpenTelemetry/OpenInference spans/events;
   - Inspect result adapter;
   - run manifest writer.
 - **Scoring layer**
@@ -1137,7 +1113,6 @@ The finished package should include:
 - **Execution layer**
   - Bedrock model eval job templates;
   - Bedrock RAG eval job templates;
-  - AgentCore evaluator examples;
   - Inspect AI task and recipe;
   - local harness simulator.
 - **Ops layer**
@@ -1163,8 +1138,6 @@ The finished package should include:
 | Score retrieval quality | Bedrock RAG retrieval evaluation | Separates retrieval from generation failures |
 | Score RAG answer quality | Bedrock RAG retrieve-and-generate evaluation | Uses RAG-specific metrics such as faithfulness and citation coverage |
 | Evaluate public project Q&A | Bedrock RAG evals + deterministic citation/source checks | Verifies the chatbot answers from public/project-safe support or says "I don't know" |
-| Evaluate live or captured agent behavior | Bedrock AgentCore online/on-demand/batch/dataset evaluations | Designed around sessions, traces, spans, tool calls, and evaluator modes |
-| Evaluate future Calendar/Slack tool flows | AgentCore evals + deterministic schema/consent/rate-limit scorers | Phase 2 only; tool choice and side effects need trace-level evidence, not just final-answer grading |
 | Run complex programmatic evals | Inspect AI on SageMaker/ECS/Batch | Eval logic is code, not only judge prompts |
 | Validate data and run lightweight scoring | Local CLI first; tiny Lambda only for small code-based evaluators or event glue | Fast schema checks and deterministic scoring without turning Lambda into an eval runtime |
 | Coordinate managed and custom work | Bedrock-native workflows first, Step Functions when preflight/CI/CD/cross-service glue is needed | Use managed comparison/reporting where supported; add explicit state, retries, failure handling, and auditability around it |
@@ -1178,12 +1151,10 @@ The finished package should include:
 Do not claim:
 
 - “Bedrock Evaluations is the whole harness.” It is a managed evaluation component.
-- “BYOI evaluates any live app automatically.” Bedrock model-eval BYOI means you provide `modelResponses` in the expected schema and Bedrock skips model invocation; live app evaluation belongs in AgentCore-supported flows or a custom capture pipeline feeding supported inputs.
+- “BYOI evaluates any live app automatically.” Bedrock model-eval BYOI means you provide `modelResponses` in the expected schema and Bedrock skips model invocation; live app evaluation belongs in a custom capture pipeline feeding supported inputs.
 - “LLM-as-judge is ground truth.” It is a judge with measurable error.
 - “Synthetic tests prove production safety.” They prove behavior on synthetic tests.
 - “The candidate agent is safe because it has evals.” Evals are scoped evidence, not a guarantee.
-- “Agent simulation equals production behavior.” It is useful evidence, not a deployment guarantee.
-- “Tool success proves consent.” For any future write action, consent is a recorded state transition before a server-side write, not a pleasant final message.
 - “Project Q&A can use anything Ryan has ever written.” Public answers need public/project-safe sources and citations.
 - “A passing eval means the model is safe.” It means it passed a scoped test suite.
 - “One RAG score explains everything.” Retrieval and generation failures must be separated.
@@ -1229,15 +1200,6 @@ Primary AWS references to consult while building this plan:
 - Bedrock data management and encryption for evaluation jobs: <https://docs.aws.amazon.com/bedrock/latest/userguide/evaluation-data-management.html>
 - KMS support in model evaluation jobs: <https://docs.aws.amazon.com/bedrock/latest/userguide/model-evaluation-security-data.html>
 - Data encryption for knowledge base evaluation jobs: <https://docs.aws.amazon.com/bedrock/latest/userguide/rag-evaluation-security-data.html>
-- Bedrock AgentCore Evaluations: <https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/evaluations.html>
-- AgentCore evaluation types: <https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/evaluations-types.html>
-- AgentCore online evaluations: <https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/online-evaluations.html>
-- AgentCore on-demand evaluations: <https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/on-demand-evaluations.html>
-- AgentCore batch evaluations: <https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/batch-evaluations.html>
-- AgentCore dataset evaluations: <https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/dataset-evaluations.html>
-- AgentCore input spans and events: <https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/understanding-input-spans.html>
-- AgentCore code-based evaluators: <https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/code-based-evaluators.html>
-- AgentCore quotas: <https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/bedrock-agentcore-limits.html>
 - SageMaker Inspect AI container: <https://docs.aws.amazon.com/nova/latest/userguide/nova-eval-inspect-ai-container.html>
 
 These pages are the source of truth for schemas, field names, metric lists, job constraints, and evaluation modes. This plan paraphrases them to stay readable; where the two disagree, follow the docs, and assume AWS has shipped changes since this was written.
