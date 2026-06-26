@@ -22,7 +22,7 @@ Use:
 
 This repo has been intentionally reset after an initial AWS AI evals learning spike accumulated too much schema and evaluation-design debt.
 
-Until Ryan defines the next direction, agents must treat this repo as a minimal starting point. Do not infer or revive the previous app specimen, eval schema, AWS service path, rubric set, dataset shape, weekly roadmap, Terraform stack, or chatbot assumptions from deleted history.
+Until Ryan defines the next direction, agents must treat this repo as a minimal starting point. The retained learning plan is a planning reference, not permission to revive the previous implementation. Do not infer or rebuild the previous app specimen, eval schema, AWS service path, rubric set, dataset shape, Terraform stack, or chatbot assumptions from deleted history without explicit instruction.
 
 ## Agent rules
 

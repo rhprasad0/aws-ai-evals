@@ -6,4 +6,6 @@ The first attempt built a candidate-evidence chatbot and an AWS/Bedrock eval har
 
 Lesson from attempt one: design the evaluation schema, labeling workflow, and success criteria before building the harness around them.
 
-Next direction comes from Ryan. Agents should not revive the previous roadmap, chatbot assumptions, rubrics, datasets, or infrastructure without explicit instruction.
+The old implementation, datasets, rubrics, schemas, and infrastructure have been removed. The learning roadmap is intentionally retained as a planning reference: [`docs/aws-ai-evals-learning-plan.md`](docs/aws-ai-evals-learning-plan.md).
+
+Next direction comes from Ryan. Agents should not revive the previous chatbot implementation, rubrics, datasets, schemas, or infrastructure without explicit instruction.
