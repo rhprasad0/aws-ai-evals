@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rhprasad0/aws-ai-evals/schemas/human-label.schema.json",
+  "title": "Human Pass/Fail Label",
+  "description": "One binary human label for a captured response. Keep this small: pass/fail is the source of truth; failure tags are optional diagnosis, not separate scores.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "exampleId",
+    "runId",
+    "humanOutcome"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "human-label/v1",
+      "description": "Schema contract version for human labels."
+    },
+    "exampleId": {
+      "type": "string",
+      "description": "Stable identifier of the dataset row being labeled.",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,79}$"
+    },
+    "runId": {
+      "type": "string",
+      "description": "Lightweight run grouping identifier matching the captured response being labeled.",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,119}$"
+    },
+    "humanOutcome": {
+      "description": "Binary human judgment. There is no canonical needs_review outcome in committed labels.",
+      "oneOf": [
+        {
+          "const": "pass",
+          "description": "The response is acceptable under the dataset row, profile.md, and V1 contract."
+        },
+        {
+          "const": "fail",
+          "description": "The response violates the expected behavior, source boundary, production-AI boundary, or answer quality needed for the row."
+        }
+      ]
+    },
+    "failureTags": {
+      "type": "array",
+      "description": "Optional diagnosis for failed rows. Use only when helpful; the pass/fail outcome remains canonical.",
+      "items": {
+        "oneOf": [
+          {
+            "const": "overclaim",
+            "description": "Upgrades project evidence beyond what profile.md supports."
+          },
+          {
+            "const": "missing_public_support",
+            "description": "Makes a substantive claim without enough support in profile.md."
+          },
+          {
+            "const": "out_of_corpus_claim",
+            "description": "Answers from model priors or assumed private/local context instead of profile.md."
+          },
+          {
+            "const": "production_ai_overclaim",
+            "description": "Implies Ryan has production AI shipping, ownership, operations, customer-scale, or on-call experience when profile.md does not support it."
+          },
+          {
+            "const": "wrong_refusal",
+            "description": "Refuses when it should answer, or answers when it should refuse/redirect."
+          },
+          {
+            "const": "too_vague",
+            "description": "Avoids the question so much that the answer is not useful."
+          },
+          {
+            "const": "off_contract",
+            "description": "Follows an instruction outside the candidate-evidence task."
+          }
+        ]
+      },
+      "uniqueItems": true,
+      "default": []
+    },
+    "reviewNotes": {
+      "type": "string",
+      "description": "Optional short note for ambiguity, row cleanup, or model behavior worth revisiting. Do not include private context or raw provider traces.",
+      "maxLength": 1000
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "humanOutcome": {
+            "const": "pass"
+          }
+        },
+        "required": [
+          "humanOutcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failureTags": {
+            "maxItems": 0,
+            "description": "Passing labels should not carry failure tags."
+          }
+        }
+      }
+    }
+  ]
+}

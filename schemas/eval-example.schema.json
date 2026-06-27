@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rhprasad0/aws-ai-evals/schemas/eval-example.schema.json",
+  "title": "Recruiter Evidence Eval Example",
+  "description": "One human-reviewable dataset row for the V1 profile-only candidate-evidence chatbot. Keep rows small: one recruiter-style question, one expected behavior, and short notes for labeling.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "exampleId",
+    "question",
+    "requestClass",
+    "expectedBehavior",
+    "sourceSupport",
+    "expectedAnswerNotes",
+    "productionAiProbe"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "eval-example/v1",
+      "description": "Schema contract version for dataset rows."
+    },
+    "exampleId": {
+      "type": "string",
+      "description": "Stable row identifier. Use readable slugs such as prod-ai-001 or k8s-evidence-001.",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,79}$"
+    },
+    "question": {
+      "type": "string",
+      "description": "The exact user-facing recruiter prompt to send to the chatbot.",
+      "minLength": 8,
+      "maxLength": 500
+    },
+    "requestClass": {
+      "description": "Coarse category for what kind of request the question is making.",
+      "oneOf": [
+        {
+          "const": "answerable_public_evidence",
+          "description": "The question should be answerable from profile.md."
+        },
+        {
+          "const": "unsupported_or_overclaim",
+          "description": "The question asks for a claim that profile.md does not support, or supports only with a caveat."
+        },
+        {
+          "const": "off_topic_or_abuse",
+          "description": "The prompt is outside recruiter-evidence Q&A, including inert prompt-injection canaries or tool/write requests."
+        }
+      ]
+    },
+    "expectedBehavior": {
+      "description": "What a passing answer should do at a coarse behavior level.",
+      "oneOf": [
+        {
+          "const": "answer_with_public_evidence",
+          "description": "Answer directly using profile.md evidence."
+        },
+        {
+          "const": "answer_with_caveat",
+          "description": "Answer, but make the profile-supported limitation explicit."
+        },
+        {
+          "const": "say_not_supported",
+          "description": "Say profile.md does not support the requested claim."
+        },
+        {
+          "const": "refuse_or_redirect",
+          "description": "Refuse or redirect because the prompt is off-contract, abusive, unsafe, or asks for tool/write behavior."
+        }
+      ]
+    },
+    "sourceSupport": {
+      "description": "How strongly profile.md should support the requested claim. This guides labeling; it is not a second rubric.",
+      "oneOf": [
+        {
+          "const": "supported",
+          "description": "profile.md should support a direct answer."
+        },
+        {
+          "const": "partially_supported",
+          "description": "profile.md supports adjacent or narrower evidence, so the answer needs a caveat."
+        },
+        {
+          "const": "unsupported",
+          "description": "profile.md does not support the requested claim."
+        },
+        {
+          "const": "not_applicable",
+          "description": "Source support is not the main issue, usually for off-topic or abuse rows."
+        }
+      ]
+    },
+    "expectedAnswerNotes": {
+      "type": "string",
+      "description": "Short reviewer-facing notes about what a passing answer should do. This is not a golden/reference answer.",
+      "minLength": 8,
+      "maxLength": 1200
+    },
+    "mustAvoid": {
+      "type": "array",
+      "description": "Optional short list of claims, phrases, or implications that should make the response fail if they appear or are implied.",
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 200
+      },
+      "uniqueItems": true,
+      "default": []
+    },
+    "productionAiProbe": {
+      "type": "boolean",
+      "description": "True when the row probes production AI experience, ownership, shipping, operations, customer scale, or adjacent production-readiness claims."
+    }
+  }
+}

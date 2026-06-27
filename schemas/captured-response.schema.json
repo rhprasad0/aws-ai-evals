@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rhprasad0/aws-ai-evals/schemas/captured-response.schema.json",
+  "title": "Captured Chatbot Response",
+  "description": "One public-safe captured response from the V1 profile-only chatbot. This wraps the model answer with just enough metadata to connect it to a dataset row and run.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "exampleId",
+    "runId",
+    "capturedAt",
+    "modelId",
+    "promptVersion",
+    "profileVersion",
+    "response"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "captured-response/v1",
+      "description": "Schema contract version for captured responses."
+    },
+    "exampleId": {
+      "type": "string",
+      "description": "Stable identifier of the eval-example row that produced this response.",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,79}$"
+    },
+    "runId": {
+      "type": "string",
+      "description": "Lightweight grouping identifier for a response capture pass. This is not a full run manifest.",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,119}$"
+    },
+    "capturedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp when the response was captured, for example 2026-06-27T18:00:00Z."
+    },
+    "modelId": {
+      "type": "string",
+      "description": "Generator model or inference profile used for this response, for example us.amazon.nova-2-lite-v1:0 or stub-local.",
+      "minLength": 2,
+      "maxLength": 200
+    },
+    "promptVersion": {
+      "type": "string",
+      "description": "Prompt wrapper version, slug, or hash. Keep it short and human-readable when possible.",
+      "minLength": 2,
+      "maxLength": 160
+    },
+    "profileVersion": {
+      "type": "string",
+      "description": "profile.md version, slug, or hash used as the sole evidence source for this response.",
+      "minLength": 2,
+      "maxLength": 160
+    },
+    "response": {
+      "type": "object",
+      "description": "The minimal chatbot response object. Do not include citations, evidence-strength labels, unsupported-claim arrays, rubric scores, provider envelopes, or model-generated pass/fail judgments in V1.",
+      "additionalProperties": false,
+      "required": [
+        "answer"
+      ],
+      "properties": {
+        "answer": {
+          "type": "string",
+          "description": "Public-safe chatbot answer text judged by humans against profile.md and the dataset row.",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "responseKind": {
+          "description": "Optional coarse self-classification for debugging. Human labels must judge the answer, not trust this field.",
+          "oneOf": [
+            {
+              "const": "answer",
+              "description": "The chatbot believes it answered directly from profile.md."
+            },
+            {
+              "const": "caveat",
+              "description": "The chatbot believes it answered with an important limitation."
+            },
+            {
+              "const": "not_supported",
+              "description": "The chatbot believes profile.md does not support the requested claim."
+            },
+            {
+              "const": "refusal",
+              "description": "The chatbot refused or redirected an off-contract request."
+            }
+          ]
+        }
+      }
+    }
+  }
+}
