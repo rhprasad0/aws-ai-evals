@@ -133,488 +133,380 @@ aws-ai-evals/
 This plan starts documentation-first, then turns it into code and deployable infrastructure.
 
 ---
-## Week 1 — Eval/Product Contract, Security Envelope, and Repo Contracts
+## Week 1 — Simplified Eval/Product Contract and Repo Posture
 
 ### Objective
 
-Define the public `ryanprasad.ai` candidate evidence chatbot as the specimen: recruiter evidence intents, citation rules, safety boundaries, success criteria, threat model, secrets/IAM, and public/private data boundaries.
+Define the public `ryanprasad.ai` candidate evidence chatbot as a deliberately boring lab specimen with one source file, one coarse labeling workflow, and no premature cloud or citation machinery.
 
 ### Why it matters
 
-Most eval systems fail because the app was never instrumented for evaluation, or because IAM, KMS, model access, Region, quota, and retention decisions get bolted on after sensitive artifacts already exist. For a public recruiter chatbot, the trap is subtler: it can inflate lab work into production claims, cite nonexistent sources, or leak private context. Capture raw Bedrock invocation logs for lab/eval runs, and capture app-level source labels, evidence strength, refusals, errors, run parameters, and security boundaries consistently or you get vibes in a trench coat instead of evidence.
+The previous iteration made the contract hard to label by introducing too many axes too early: citations, source labels, evidence-strength taxonomies, run manifests, managed-job assumptions, and detailed security/IAM scaffolding before the local evaluation shape was stable. This reset keeps Week 1 focused on the contract that humans can actually label: `profile.md` is the only source, responses are minimal JSON, labels are pass/fail, and production AI experience is the central recruiter probe.
+
+The key recruiter truth is that Ryan does not currently have production AI experience. The chatbot should answer that directly and pivot to adjacent GitHub-backed AI engineering, eval, AWS, and agent/tooling evidence. It must not invent shipped production AI systems, customer-scale operation, on-call ownership, or live AI deployments.
 
 ### AWS services/docs to study
 
-- Amazon Bedrock Evaluations overview
-- Bedrock model access, `ListFoundationModels`, inference profiles, Region availability, and Service Quotas
-- Bedrock model/RAG evaluation IAM service role and KMS requirements
-- Bedrock data protection/encryption docs
-- Bedrock model invocation logging
-- CloudWatch Logs, S3, CloudTrail, KMS, IAM, Secrets Manager, and WAF basics
+Light-touch only in Week 1:
+
+- Amazon Bedrock Converse structured-output behavior, enough to understand future minimal JSON responses.
+- Amazon Bedrock Evaluations overview, enough to know what is deferred until local labels exist.
+
+Do not design IAM/KMS/S3/service-role infrastructure in Week 1. That belongs later if managed Bedrock jobs become concrete.
 
 ### Build tasks
 
-1. Write `docs/evaluability-design-doc.md` with the candidate-agent contract:
-   - visitor intents: recruiter public project Q&A, skill-to-evidence mapping, unsupported/private-info questions, abuse/spam;
-   - success criteria by intent;
-   - expected failure modes;
-   - threat model for prompt injection, spam, data leakage, citation fabrication, evidence inflation, and unsupported claims;
-   - public/private data boundary, including "public GitHub/project-safe sources only" for answers;
-   - rule that no Honcho, Graphiti, private memory, private notes, transcripts, or private repos feed public answers unless explicitly curated into public-safe docs;
-   - source sanitization rules that remove or escape instruction-like markers before prompt stuffing and wrap sources in explicit public-facts delimiters;
-   - trace schema draft for chat turns, Bedrock invocation-log references, source labels, evidence strength, refusals, latency, token/cost usage, and error fields;
-   - privacy/safety policy;
-   - region pinning and data residency policy;
-   - dataset classification and sanitization policy;
-   - retention policy for S3 raw invocation logs, normalized eval artifacts, CloudWatch Logs, and local artifacts;
-   - cross-region replication restrictions;
-   - quota-based cost control plan;
-   - AWS/service/tool responsibility split.
-2. Write an AWS security/access preflight note in `docs/evaluability-design-doc.md` or `docs/security-preflight.md` covering:
-   - selected AWS Region and why eval data must stay there;
-   - S3 bucket layout, object ownership, versioning, lifecycle, and replication disabled unless explicitly approved;
-   - customer-managed KMS key placeholders for eval inputs, outputs, CloudWatch exports, and managed job encryption where supported;
-   - per-lane service roles for Bedrock model eval, RAG eval, Inspect/SageMaker, ECS/Batch, and Step Functions;
-   - no V1 tool writes; Calendar, Slack, and other write-action tools are out of scope for this iteration;
-   - no tool secrets, OAuth tokens, calendar IDs, Slack destinations, or AWS details in browser code;
-   - model access verification for every generator and evaluator model before job creation;
-   - `ListFoundationModels` and, where applicable, `ListInferenceProfiles` preflight in the target Region;
-   - default chatbot model/profile `us.amazon.nova-2-lite-v1:0`, with fail-closed behavior unless an explicit lab fallback model is configured;
-   - optional lab fallback model documented in the run manifest when Nova 2 Lite is unavailable;
-   - Converse API as the default Bedrock Runtime API;
-   - explicit `maxTokens` default of `768` for V1 chatbot calls;
-   - Lambda runtime IAM scoped to selected model/profile ARNs, not `bedrock:*` or `Resource: "*"`;
-   - Service Quotas checks for concurrent jobs and model token throughput;
-   - spam/rate-limit controls for chat sessions, including API Gateway throttle defaults and DynamoDB salted hashed-identity/time-window composite counters;
-   - pre-submit cost estimation that multiplies prompts, candidate configs, evaluator runs, repeated-run calibration, and max output tokens;
-   - retention windows for managed outputs, CloudWatch log groups, Athena tables, production trace exports, and public reports.
-3. Define a run manifest format with fields for:
-   - candidate agent version;
-   - dataset version;
-   - prompt version;
-   - public corpus/index version;
-   - citation policy version;
-   - evidence-strength taxonomy version;
-   - model/provider ID and pinned model version (an alias can move under you);
-   - inference parameters, including explicit `maxTokens`;
-   - scorer versions;
-   - judge model/rubric versions;
-   - random seed where applicable (note that hosted models may ignore it and are not guaranteed deterministic);
-   - code commit;
-   - AWS region;
-   - service role ID placeholder;
-   - KMS key ID placeholder;
-   - model access preflight status;
-   - quota estimate and approval status;
-   - rate-limit configuration version;
-   - profile source size and cold-start target;
-   - cost estimate before job submission;
-   - run timestamp.
-4. Draft a public-safe evidence policy:
-   - what can be committed;
-   - what must stay in S3 only;
-   - what must stay in lab S3 only, including raw Bedrock invocation logs;
-   - how public reports summarize or normalize evidence without committing raw provider responses;
-   - how lab traces and invocation logs are linked to run IDs, retained, and expired.
-5. Sketch the candidate-agent and eval-harness architecture in `docs/architecture.md`.
-6. Write `schemas/run-manifest.schema.json` and a matching `schemas/examples/run-manifest.example.json` that validates against it, so Week 1 ships a checkable artifact, not just prose.
+1. Write `docs/evaluability-design-doc.md` with the simplified contract:
+   - `profile.md` is the only chatbot source;
+   - GitHub is upstream evidence, but not retrieved at answer time;
+   - no source ledger, citation policy, evidence-strength taxonomy, or full run manifest;
+   - request classes: `answerable_public_evidence`, `unsupported_or_overclaim`, `off_topic_or_abuse`;
+   - expected behaviors: `answer_with_public_evidence`, `answer_with_caveat`, `say_not_supported`, `refuse_or_redirect`;
+   - human labels: `pass` or `fail`, with optional failure tags;
+   - captured responses: metadata plus minimal `response.answer` and optional `response.responseKind`;
+   - production AI experience probes are first-class examples;
+   - public-safe artifact policy for what can and cannot be committed.
+2. Write `docs/architecture.md` as a tiny architecture sketch:
+   - `profile.md` -> prompt wrapper -> model -> minimal JSON response -> captured response -> pass/fail human label;
+   - no retrieval, no tools, no memory, no citations, no cloud eval jobs, and no deployment architecture yet.
+3. Record the next build artifacts for Week 2:
+   - `profile.md`;
+   - dataset schema;
+   - captured-response schema;
+   - human-label schema;
+   - first small synthetic dataset;
+   - validator script;
+   - public-safety scan.
 
 ### Validation checks
 
-- A new contributor can explain what the chatbot does, what it refuses, and why those behaviors are evaluated.
-- Every planned artifact has a safe storage location.
-- IAM/KMS/Region/model-access/quota/cost controls exist before dataset work begins, including `ListFoundationModels`/inference-profile preflight, the selected Nova 2 Lite profile, scoped runtime IAM, and explicit `maxTokens`.
-- Model access is explicitly checked for both generator and evaluator models in the chosen Region.
-- Data residency is explicit: no accidental cross-region replication, unmanaged CloudWatch retention, or public artifact pipeline for sensitive outputs.
-- No Calendar, Slack, or other tool writes exist in this iteration.
-- GitHub/project Q&A cites public sources and says "I don't know" when unsupported.
-- Prompt-stuffed public sources are sanitized, delimited as facts, capped at 50 KB by default, and verified to keep cold-start source-loading impact under 3 seconds.
-- The canonical container-orchestration question returns `aws-devops-lab` and `airgap-aiops` with caveats.
-- The design separates model, RAG, and custom harness lanes while keeping one live specimen.
-- No live AWS identifiers, private examples, raw traces, real emails, Slack IDs, calendar IDs, private hostnames, or secrets are present.
-- The example run manifest validates against `schemas/run-manifest.schema.json`.
-- Reproducibility is scoped honestly: the manifest pins versions and parameters, but the doc states plainly that hosted models may not reproduce token-for-token.
+- A new contributor can explain the chatbot source boundary: answers come from `profile.md` only.
+- A new contributor can explain the labeling workflow: one row, one response, one pass/fail label.
+- The doc makes production AI candor explicit and treats production-AI overclaiming as a failure.
+- The design does not require source ledgers, citations, evidence-strength labels, run manifests, AWS IAM/KMS scaffolding, Bedrock jobs, RAG, UI work, or deployment before the first labels exist.
+- Public/private boundaries are stated as repo artifact hygiene and source curation, not as a live-memory leakage threat.
+- `git diff --check` passes.
 
 ### Public-safe artifacts to commit
 
 - `docs/evaluability-design-doc.md`
 - `docs/architecture.md`
-- `docs/security-preflight.md` if you keep the security envelope separate
-- `schemas/run-manifest.schema.json`
-- `schemas/examples/run-manifest.example.json`
+
+### Common failure modes
+
+- Reintroducing the previous iteration's citation/source-label/evidence-strength schema before labels exist.
+- Treating production AI experience as an embarrassing edge case instead of the main recruiter question.
+- Building Bedrock/IAM/S3 infrastructure before the local contract is labelable.
+- Letting `profile.md` become vague marketing copy instead of a concise evidence file with claim limits.
+- Treating GitHub as runtime retrieval instead of upstream evidence summarized in `profile.md`.
+
+### Stretch goals
+
+- Add a one-page candidate-agent product contract that a recruiter can skim.
+
+---
+## Week 2 — Profile Source, Coarse Schemas, and Validators
+
+### Objective
+
+Turn the Week 1 design into a small local workflow: write `profile.md`, define coarse schemas, create a first synthetic recruiter-evidence dataset, and validate everything locally before building the chatbot.
+
+### Why it matters
+
+The chatbot should not exist before the source and labels are clear. Week 2 proves that the profile-only source boundary and pass/fail labeling workflow are concrete enough to validate. This is where public-safety scanning belongs: after there are actual schemas, fixtures, and datasets to scan.
+
+### AWS services/docs to study
+
+- Bedrock Converse API JSON response behavior, only as future implementation context.
+- JSON Schema conventions for local validation.
+
+Managed Bedrock evaluation jobs, BYOI exports, RAG evals, and judge rubrics remain deferred.
+
+### Build tasks
+
+1. Write `profile.md`:
+   - summarize GitHub-backed evidence only;
+   - include explicit claim limits;
+   - include a direct production AI experience statement;
+   - state that there are no live AI projects currently up;
+   - avoid unsupported production/customer/scale/on-call claims.
+2. Create JSON Schemas for:
+   - `schemas/eval-example.schema.json`;
+   - `schemas/captured-response.schema.json`;
+   - `schemas/human-label.schema.json`.
+3. Create tiny valid and invalid fixtures for each schema.
+4. Create `datasets/synthetic/recruiter-evidence-qa.jsonl` with a small first slice:
+   - production AI experience probes;
+   - GitHub-backed adjacent evidence questions;
+   - unsupported/overclaim prompts;
+   - off-topic or inert prompt-injection canaries.
+5. Build `scripts/validate_dataset.py`:
+   - validates JSON and JSONL;
+   - reports line numbers and schema paths;
+   - checks enum values and required fields;
+   - validates fixture files and the first synthetic dataset.
+6. Add `scripts/public_safety_scan.py` as a simple repo scanner for public artifacts:
+   - secrets/token-shaped strings;
+   - private/local paths;
+   - AWS identifiers;
+   - private hostnames/IPs;
+   - raw traces or provider-output markers.
+
+### Validation checks
+
+- `profile.md` is public-safe and contains no private/local/source-of-truth leakage.
+- Valid fixtures pass and invalid fixtures fail with clear errors.
+- The first synthetic dataset validates.
+- Human labels remain binary: `pass` or `fail`.
+- Captured response schema stays minimal: metadata plus `response.answer` and optional `response.responseKind`.
+- The public-safety scan runs over tracked docs, schemas, fixtures, datasets, and scripts.
+- No chatbot, UI, deployment, Bedrock job, citation policy, source ledger, or run-manifest system is introduced.
+
+### Public-safe artifacts to commit
+
+- `profile.md`
+- `schemas/eval-example.schema.json`
+- `schemas/captured-response.schema.json`
+- `schemas/human-label.schema.json`
+- `datasets/synthetic/recruiter-evidence-qa.jsonl`
+- schema fixtures under a test fixture directory
+- `scripts/validate_dataset.py`
 - `scripts/public_safety_scan.py`
 
 ### Common failure modes
 
-- Treating Bedrock Evaluations as the whole harness.
-- Treating the public chatbot as a demo while the eval plan studies a different synthetic app.
-- Skipping privacy design until traces contain visitor content.
-- Forgetting that model invocation logging captures the raw model I/O you actually need for eval debugging, while still treating its S3 destination as lab artifact storage rather than public repo material.
-- Starting dataset work before you know which Region, KMS keys, service roles, model access grants, model/profile ARNs, quotas, and retention policies will govern the data.
-- Leaking private memory or private repo context into public answers because it "helps" the assistant sound useful.
-- Treating synthetic datasets as automatically harmless; synthetic prompts can still reveal business logic, security posture, or operational abuse patterns.
-- Promising reproducible runs without pinning model/judge versions or admitting that hosted models may not reproduce token-for-token.
-- Writing "we will evaluate quality" without defining quality.
+- Writing `profile.md` like a résumé instead of an evidence/claim-limit source file.
+- Letting production AI answers become vague positioning instead of candid no-plus-adjacent-evidence answers.
+- Adding citations, source labels, evidence-strength labels, or judge rubrics before pass/fail labels are proven useful.
+- Making the dataset too large to label in one sitting.
+- Treating the public-safety scanner as a substitute for human review.
 
 ### Stretch goals
 
-- Add a lightweight Mermaid or SVG architecture diagram.
-- Add a `make safety-scan` command.
-- Add a one-page candidate-agent product contract that a recruiter can skim.
+- Add a tiny CLI summary showing dataset counts by `requestClass`, `expectedBehavior`, `sourceSupport`, and `productionAiProbe`.
 
 ---
-## Week 2 — Candidate-Agent Dataset Contracts and Schema Validators
+## Week 3 — Minimal Profile-Only Specimen
 
 ### Objective
 
-Build synthetic recruiter-evidence datasets, citation contracts, evidence-strength labels, and validators for the `ryanprasad.ai` candidate evidence chatbot before running eval jobs.
+Create the smallest local candidate-agent specimen needed to turn a dataset row plus `profile.md` into the minimal JSON response defined in Week 1 and Week 2.
 
 ### Why it matters
 
-AWS eval jobs are schema-sensitive, and public evidence bots are claim-sensitive. A harness engineer should fail bad data, unsafe examples, bad citations, inflated evidence strength, and private identifiers locally, not after a cloud job burns time and money or a public bot emits recruiter fan fiction.
-
-### AWS services/docs to study
-
-- Bedrock model evaluation prompt datasets for model-as-judge
-- Bedrock custom metrics job docs
-- Bedrock RAG retrieve-and-generate prompt dataset docs
-
-### Build tasks
-
-1. Create JSON Schemas for:
-   - model evaluation prompt datasets;
-   - model BYOI responses;
-   - RAG retrieve-and-generate BYOI datasets;
-   - retrieval-only RAG BYOI datasets;
-   - candidate-agent chat-turn examples;
-   - citation arrays and source-label constraints;
-   - evidence-strength labels;
-   - refusal/escalation outcomes;
-   - run manifests.
-2. Build `scripts/validate_dataset.py`:
-   - accepts `--schema` and `--input`;
-   - validates JSONL line-by-line;
-   - reports line numbers and failure reasons;
-   - refuses files with obvious secrets, real emails, Slack/channel IDs, account IDs, private hostnames, local paths, raw traces, or private identifiers.
-3. Create tiny synthetic datasets under `datasets/synthetic/`:
-   - recruiter/project questions about public GitHub-style project summaries, using synthetic public-safe source snippets;
-   - unsupported/private-info questions where the right answer is refusal or "I don't know";
-   - prompt-injection attempts using inert canaries such as `INJECTION_CANARY_DO_NOT_FOLLOW`, not working attack text;
-   - spam/rate-limit cases across chat;
-   - 10 intentionally invalid examples under a test fixture directory.
-4. Write `docs/dataset-contracts.md` explaining what each schema is for and which evaluation lane consumes it.
-5. Give every schema a `schema_version` field and keep golden valid/invalid fixtures under a test directory, so CI can prove a schema change did not silently break old data.
-
-### Validation checks
-
-- Valid datasets pass locally.
-- Invalid fixtures fail locally with clear messages.
-- JSONL remains line-delimited, not a giant JSON array.
-- Dataset examples use only synthetic or explicitly public-safe content, with license/provenance recorded for any non-synthetic source-derived fixture.
-- Citation/evidence schemas reject nonexistent source labels, missing citations for material claims, unsupported evidence-strength upgrades, and missing `referenceResponse` values for golden prompts.
-- Prompt-injection examples are inert canary cases, not working payloads.
-- Schemas carry a version, and golden fixtures pin expected pass/fail outcomes plus reference responses where deterministic or judge-based scoring needs ground truth.
-- Dataset licensing/provenance is documented: synthetic fixtures derived from `content/profile.md` are public repo artifacts; any future public-README-derived fixture records source and license.
-
-### Public-safe artifacts to commit
-
-- `schemas/*.schema.json`
-- `datasets/synthetic/*.jsonl`
-- `scripts/validate_dataset.py`
-- `docs/dataset-contracts.md`
-
-### Common failure modes
-
-- Mixing model evaluation and RAG evaluation schemas.
-- Letting the RAG dataset become generic instead of reflecting the chatbot's public project Q&A job.
-- Assuming Bedrock model-eval BYOI means live arbitrary inference. It means you provide `modelResponses` in AWS's expected dataset shape; live app evaluation belongs in a custom trace/output capture pipeline that feeds supported BYOI inputs.
-- Forgetting Bedrock model BYOI constraints (e.g. one model response per prompt and one unique model identifier per job — confirm the current rules in the linked docs).
-- Ignoring Bedrock-native comparison/reporting workflows and building external fan-out for comparisons the managed service already supports.
-- Changing a schema without bumping its version or updating fixtures, so old datasets break silently. For any non-synthetic data later, record license/provenance; this repo stays synthetic-only unless the source is explicitly curated as public-safe.
-
-### Stretch goals
-
-- Add unit tests for validators.
-- Add a schema compatibility matrix for Bedrock model eval, RAG eval, and Inspect AI.
-- Add a contract test that blocks unsupported skill claims without citations.
-
----
-## Week 3 — Minimal Specimen and Trace Contract
-
-### Objective
-
-Create the smallest local or stubbed candidate-agent specimen needed to produce traceable answers, refusals, citations, source labels, evidence-strength labels, latency, token/cost placeholders, and structured errors. This is still not the finished chatbot.
-
-### Why it matters
-
-The first deployable-looking app can seduce the project into product work before the eval shape is honest. A minimal specimen keeps the surface boring while proving that the eval contracts can observe the behaviors that matter: supported project answers, unsupported/private-info refusals, citation support, evidence-strength calibration, and public/private source boundaries.
+The first implementation should prove the contract, not become a product. The specimen only needs to show that the prompt wrapper, `profile.md`, model call, captured response wrapper, and validator can work together. It should not add retrieval, citations, source labels, evidence-strength labels, UI polish, or deployment work.
 
 ### AWS services/docs to study
 
 - Bedrock Converse API response structure
-- Bedrock model invocation logging concepts
-- CloudWatch structured logging concepts
-- S3 object layout patterns
+- Bedrock JSON / structured-output behavior where applicable
 
 ### Build tasks
 
 1. Define the specimen interface:
-   - input question;
-   - synthetic/public-safe context bundle;
-   - candidate answer;
-   - citations;
-   - source labels;
-   - evidence-strength label;
-   - refusal outcome;
-   - structured error fields.
-2. Emit normalized JSON trace exports with:
-   - run/session ID;
-   - synthetic input in public examples;
-   - candidate agent version;
-   - model/provider ID placeholder;
-   - generated answer;
-   - reference answer where applicable;
-   - public source citations;
-   - source labels or passage IDs;
-   - evidence-strength label;
-   - latency;
-   - token/cost estimate placeholders;
-   - error fields.
-3. Keep the specimen source loading capped and measurable:
-   - public facts only;
-   - explicit source delimiters;
-   - prompt-instruction sanitization;
-   - 50 KB default source cap;
-   - cold-start source-loading target under 3 seconds.
-4. Write `schemas/trace-export.schema.json` for the normalized public-safe trace export.
-5. Add `docs/specimen-trace-contract.md` explaining how trace fields feed deterministic scorers, Bedrock BYOI adapters, RAG adapters, Inspect tasks, and public-safe reports.
+   - input `question` from a dataset row;
+   - `profile.md` loaded as the only evidence source;
+   - prompt wrapper with clear profile delimiters;
+   - model response JSON with `answer` and optional `responseKind`.
+2. Implement a local runner that:
+   - reads the small synthetic dataset;
+   - calls the model for each row or supports a stub mode for fixture testing;
+   - writes captured response records with `exampleId`, `runId`, `capturedAt`, `modelId`, `promptVersion`, `profileVersion`, and `response`.
+3. Validate captured responses against `schemas/captured-response.schema.json`.
+4. Keep production AI probes in the smoke set.
+5. Document how to run the local specimen without deploying anything.
 
 ### Validation checks
 
-- The specimen can produce a supported answer with citations.
-- The specimen can produce an unsupported/private-info refusal or "I don't know" outcome.
-- A failed candidate call produces a structured error record.
-- Trace exports validate against `schemas/trace-export.schema.json`.
-- Public examples do not contain raw invocation logs, visitor content, live identifiers, or sensitive data.
+- The runner can produce valid captured response JSON for a small dataset slice.
+- Production AI questions receive candid no-plus-adjacent-evidence answers, not production overclaims.
+- Unsupported/overclaim prompts can produce `not_supported` or caveated answers.
+- Off-topic or inert prompt-injection canaries can produce `refusal` or redirect-style answers.
+- No citations, source labels, evidence-strength labels, run manifests, retrieval, UI, deployment, or Bedrock managed jobs are introduced.
 
 ### Public-safe artifacts to commit
 
-- `src/trace_writer.py` or equivalent minimal trace helper
-- `schemas/trace-export.schema.json`
-- `docs/specimen-trace-contract.md`
+- minimal local runner or specimen module
+- captured-response fixture(s)
+- docs for local run instructions
 
 ### Common failure modes
 
-- Treating the minimal specimen as a product surface.
-- Logging everything forever before there is a lab-artifact policy.
-- Committing raw traces because they are "just examples."
-- Failing to record inference parameters, making reruns non-reproducible.
+- Turning the specimen into a public chatbot before labels are useful.
+- Adding retrieval because `profile.md` is imperfect instead of improving `profile.md`.
+- Treating `responseKind` as the label.
+- Hiding the production AI limitation behind vague positioning.
 
 ### Stretch goals
 
-- Add trace IDs to local traces.
-- Generate a tiny static HTML report from sample traces.
+- Add a tiny report that prints pass/fail placeholder counts once human labels exist.
 
 ---
-## Week 4 — Local Harness and Deterministic Gates
+## Week 4 — Local Harness and Mechanical Gates
 
 ### Objective
 
-Build the local harness and deterministic scorers that gate the candidate specimen before cloud jobs or deployment polish.
+Build the local harness that connects datasets, captured responses, human labels, and simple mechanical validation. Keep the gates schema-focused; do not recreate citation or rubric scoring.
 
 ### Why it matters
 
-LLM judges are flexible. Deterministic scorers are boring in the best possible way. You want both.
+The local harness should make it cheap to rerun the profile-only specimen and see whether the workflow still holds together. Mechanical gates catch malformed data. Human labels judge answer quality.
 
 ### AWS services/docs to study
 
-- Lambda for lightweight validation and dispatch
-- Step Functions task states
-- S3 event-driven workflows
-- CloudWatch metrics
+None required. This week can remain local unless a concrete Bedrock integration is ready.
 
 ### Build tasks
 
-1. Implement scorers for:
-   - exact match;
-   - JSON schema validity;
-   - required field presence;
-   - refusal phrase detection;
-   - citation format validity;
-   - citation source allowlist/no-private-source checks;
-   - no-secret/no-private-identifier checks;
-   - citation presence and source-label validity;
-   - evidence-strength label validity;
-   - no unsupported production-claim upgrades.
-2. Package scorers as local CLI functions first.
-3. Design optional Lambda wrappers only for tiny deterministic checks or event dispatch glue.
-4. Define when **not** to use Lambda:
-   - long-running evals;
-   - large batch processing;
-   - heavy model simulations;
-   - complex Inspect AI tasks.
-5. Route sustained evaluation work to managed Bedrock jobs, SageMaker, ECS, or AWS Batch.
+1. Add local commands to:
+   - validate dataset rows;
+   - validate captured responses;
+   - validate human labels;
+   - join examples, responses, and labels by `exampleId`.
+2. Add a simple summary report:
+   - total examples;
+   - pass/fail counts;
+   - failure-tag counts;
+   - production-AI probe pass/fail counts;
+   - missing response or missing label counts.
+3. Keep deterministic checks mechanical:
+   - valid JSON/JSONL;
+   - required fields;
+   - enum values;
+   - unique IDs;
+   - captured responses include `response.answer`.
+4. Add fixture tests for the validator and summary command.
 
 ### Validation checks
 
-- Scorers are deterministic and unit-tested.
-- Scorer outputs include version, inputs, score, and explanation.
-- Citation and evidence-calibration scorer failures can block a candidate-chatbot release before recruiter-facing answers ship.
-- Lambda design is explicitly optional and small; sustained eval runtime is assigned to managed Bedrock jobs, SageMaker, ECS, or AWS Batch.
+- The harness can validate the first dataset, response fixture, and label fixture.
+- The summary report is generated from local files.
+- Pass/fail remains a human label, not a model-generated or deterministic score.
+- No citation scoring, evidence-strength scoring, source ledger checks, full manifests, Bedrock jobs, or deployment work are introduced.
 
 ### Public-safe artifacts to commit
 
-- `src/scorers/*.py`
-- `tests/test_scorers.py`
-- `docs/scorer-library.md`
-- `infra/templates/lambda-scorer-wrapper.md` if you include tiny Lambda evaluators/glue
+- local harness command(s)
+- summary/report script
+- tests or fixtures for the local workflow
 
 ### Common failure modes
 
-- Using LLM-as-judge for things a regex/schema can catch perfectly.
-- Putting heavyweight eval runners in Lambda because “serverless” sounds tidy.
-- Failing to version scorers.
+- Turning mechanical validation into a hidden rubric.
+- Reintroducing old citation/evidence-strength gates.
+- Reporting model quality from unlabeled responses.
+- Expanding the dataset faster than it can be manually reviewed.
 
 ### Stretch goals
 
-- Add scorer result aggregation.
-- Emit CloudWatch Embedded Metric Format examples with synthetic values.
+- Emit a small Markdown summary suitable for a future public report.
 
 ---
 ## Week 5 — Human Labeling Workflow
 
 ### Objective
 
-Build the human-label workflow before trusting any LLM judge or managed score. Human labels are the calibration center, not cleanup after the cloud receipts arrive.
+Build the lightweight human-label workflow around binary `pass`/`fail` labels and optional failure tags.
 
 ### Why it matters
 
-A judge score without labels is a vibes meter with billing. For this chatbot, labels need to capture correctness, completeness, citation support, refusal appropriateness, and evidence-strength calibration across pass, partial, and fail cases.
+Human labels are the calibration center. Keep them simple enough that Ryan can review a small dataset in one sitting. If labels become slow or ambiguous, fix the dataset and contract before adding judge rubrics.
 
 ### AWS services/docs to study
 
-- Bedrock human evaluation workflow concepts
-- Bedrock custom metric rating scales and output schemas
-- Dataset provenance and public-safe fixture practices
+None required. Managed human evaluation concepts can wait until there is a local label set worth scaling.
 
 ### Build tasks
 
-1. Build or adapt `scripts/human_label_workbench.py` for browser/headless use.
-2. Create a calibration dataset with at least 50 synthetic examples covering:
-   - public project Q&A;
-   - citation support;
-   - evidence-strength calibration;
-   - unsupported/private-info requests;
-   - inert prompt-injection classes;
-   - expected failure labels.
-3. Store human labels separately from generated model outputs.
-4. Include inline explanations for every exposed label value so reviewers do not have to decode mystery numbers.
-5. Add validation that final labels are complete and schema-valid, while draft/in-progress labels can remain incomplete during manual review.
+1. Create or extend a small local label-review workflow that shows:
+   - dataset row;
+   - `profile.md` reference context as needed;
+   - captured response;
+   - `pass` / `fail` choice;
+   - optional failure tags;
+   - optional review notes.
+2. Validate labels against `schemas/human-label.schema.json`.
+3. Add a summary command for:
+   - pass/fail counts;
+   - failure-tag counts;
+   - production-AI probe results;
+   - unlabeled or duplicate labels.
+4. Use the workflow on the first small dataset.
 
 ### Validation checks
 
-- Human labels are stored separately from generated model outputs.
-- Final calibration labels validate locally.
-- In-progress empty or partial label files are allowed only during manual relabeling.
-- Reviewer-facing UI explains score values and does not silently coerce external/provider score scales into repo labels.
-- The first judge calibration report can identify which labels the judge gets wrong.
+- Labels are binary: `pass` or `fail`.
+- Failure tags are optional diagnosis, not separate rubric scores.
+- Production AI probes are easy to review for candor versus overclaim.
+- Rows that are hard to label are revised rather than patched with more rubric complexity.
 
 ### Public-safe artifacts to commit
 
-- `datasets/synthetic/human-labels.jsonl`
-- `scripts/human_label_workbench.py`
-- `docs/human-labeling-workflow.md`
+- label workflow script or docs
+- reviewed human-label fixture or first reviewed label file
+- summary output example if public-safe
 
 ### Common failure modes
 
-- Treating scaffold labels as human calibration.
-- Hiding what `0`, `1`, or `2` means in the UI.
-- Mixing generated model outputs into the human-label source of truth.
-- Letting stale label files block prompt/dataset review when the goal is not continuation labeling.
+- Reintroducing `needs_review`, partial credit, or multi-rubric scoring too early.
+- Letting `responseKind` override human judgment.
+- Treating unlabeled responses as evaluated results.
 
 ### Stretch goals
 
-- Add a label-review receipt that summarizes remaining unlabeled or high-disagreement rows.
+- Add a tiny browser or terminal UI if plain JSONL review becomes annoying.
 
 ---
-## Week 6 — Judge Rubrics and Calibration
+## Week 6 — Optional Judge Calibration from Binary Labels
 
 ### Objective
 
-Design, validate, version, and calibrate custom LLM-as-judge metrics against the human-label workflow.
+Decide whether a judge is needed at all. If the binary human labels are stable and useful, prototype a small judge-calibration path against those labels. Do not create a multi-rubric suite by default.
 
 ### Why it matters
 
-A judge prompt is production logic. Treat it like code, not a magic incantation.
+A judge prompt is production logic. The reset plan should earn judge complexity from observed labeling pain, not assume it up front. The first judge question is simple: can a model predict Ryan's `pass`/`fail` label well enough to reduce manual review for this narrow profile-only chatbot?
 
 ### AWS services/docs to study
 
-- Bedrock custom metric creation
-- Custom metric rating scales and output schemas
-- Human evaluation workflows
+- Bedrock custom metric concepts, only if a local judge prototype is useful.
+- Model-as-judge calibration patterns.
 
 ### Build tasks
 
-1. Create a rubric library under `rubrics/`, starting with the chatbot-specific metrics that can be calibrated against public-safe human labels:
-   - correctness;
-   - completeness;
-   - citation support;
-   - refusal appropriateness;
-   - evidence-strength calibration.
-   Defer broader harmlessness and generic instruction-following rubrics unless the calibration set exposes a concrete chatbot failure mode they would catch better than the scoped rubrics above.
-2. For each rubric, define:
-   - purpose;
-   - allowed scores;
-   - judge instructions;
-   - output schema;
-   - examples of good/bad judgments.
-3. Use the human-label calibration dataset:
-   - 50 synthetic examples;
-   - examples from public project Q&A, citation support, evidence-strength calibration, unsupported/private-info, and inert injection classes;
-   - human labels assembled with `scripts/human_label_workbench.py` instead of hand-written JSONL;
-   - expected failure labels.
-4. Write a judge validation notebook or script:
-   - judge-vs-human agreement;
-   - at least 3 repeated runs of the same prompt set to measure score variance;
-   - Claude Sonnet as the primary independent judge, Nova Pro as a stronger Amazon-family comparison judge, and Nova 2 Lite retained only as the Week 4 control/baseline;
-   - high-variance cases flagged for human review;
-   - inter-rater agreement beyond raw accuracy (e.g. Cohen's kappa), so chance agreement does not flatter the judge;
-   - confusion matrix;
-   - false positives/false negatives;
-   - mandatory repeated-run variance analysis, because LLM judges can vary across runs even when inputs and parameters are pinned;
-   - bias probes for position and verbosity effects, plus self-preference when the judge shares a model family with the candidate.
+1. Review the first human-label set and identify whether manual labeling is actually a bottleneck.
+2. If yes, draft one binary judge prompt:
+   - input: dataset row, `profile.md` excerpt or full profile, captured response;
+   - output: predicted `pass` or `fail`, optional failure tags, short rationale.
+3. Compare judge predictions against human labels:
+   - agreement rate;
+   - false-pass examples, especially production AI overclaims;
+   - false-fail examples, especially candid caveated answers.
+4. Keep generated judge outputs separate from human labels.
 
 ### Validation checks
 
-- Each rubric has a version and owner.
-- Judge outputs are machine-parseable.
-- Human labels are stored separately from generated model outputs.
-- In-progress empty human-label files are allowed only during manual relabeling; final calibration requires `scripts/human_label_workbench.py validate` to pass.
-- You can identify which labels the judge gets wrong.
-- Repeated-run variance is measured and reported before any judge score is used as a regression gate.
-- No judge gates anything until it clears a documented agreement bar against human labels.
+- Human labels remain the source of truth.
+- Judge output never overwrites human labels.
+- Calibration focuses on binary pass/fail first.
+- Production AI overclaim false-passes are treated as serious failures.
+- No broad correctness/completeness/citation/evidence-strength rubric suite is introduced unless the label set proves it is needed.
 
 ### Public-safe artifacts to commit
 
-- `rubrics/*.md`
-- `schemas/judge-output.schema.json`
-- `datasets/synthetic/human-labels.jsonl`
-- `scripts/judge_calibration_report.py`
-- `docs/judge-validation.md`
-- `docs/week-05-judge-model-plan.md`
+- optional judge prompt draft
+- optional judge-output schema
+- calibration summary using public-safe examples
 
 ### Common failure modes
 
-- Treating judge scores as truth instead of measurements with error bars.
-- Reporting raw agreement while ignoring chance agreement, repeated-run variance, judge drift across evaluator-model versions, and position/verbosity bias.
-- Writing vague rubrics that produce pretty prose but no usable score.
-- Forgetting that AWS custom metrics may not visualize as expected without output schema/rating scale structure.
-- Building the harmlessness/refusal calibration set out of genuinely operational harmful prompts — synthetic is not the same as safe. Keep committed examples non-operational (category labels, not working instructions); see Working Assumptions.
+- Building a judge system before there is enough human-label data.
+- Treating judge agreement as truth instead of a measurement.
+- Adding rubric dimensions that humans are no longer labeling.
 
 ### Stretch goals
 
-- Compare a third evaluator family if the primary/comparison judge results disagree in an interesting way.
-- Add bootstrap confidence intervals.
+- Compare two judge models on the same binary-label set if the first judge is useful.
 
 ---
 ## Week 7 — Bedrock Model Evaluations: Managed Judge Jobs
