@@ -56,6 +56,22 @@ python3 scripts/dataset_workbench.py \
 
 ## Validate without serving the UI
 
+Use the repo-level validator as the canonical local and CI check:
+
+```bash
+python3 scripts/validate_dataset.py
+```
+
+Expected success shape:
+
+```text
+OK: 3 schemas are valid Draft 2020-12 JSON Schemas
+OK: 6 schema fixtures behaved as expected
+OK: 18 rows validated in datasets/synthetic/recruiter-evidence-qa.jsonl
+```
+
+The workbench still has a narrow dataset-only check for quick UI-adjacent validation:
+
 ```bash
 python3 scripts/dataset_workbench.py \
   datasets/synthetic/recruiter-evidence-qa.jsonl \

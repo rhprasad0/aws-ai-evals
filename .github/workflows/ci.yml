@@ -24,10 +24,14 @@ jobs:
       - name: Validate schemas, fixtures, and datasets
         run: python scripts/validate_dataset.py
 
+      - name: Scan public artifacts
+        run: python scripts/public_safety_scan.py
+
       - name: Run unit tests
         run: |
           python tests/test_schema_fixtures.py
           python tests/test_validate_dataset.py
+          python tests/test_public_safety_scan.py
           python tests/test_dataset_workbench.py
 
       - name: Check whitespace errors

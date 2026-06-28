@@ -15,22 +15,37 @@ The next pass is **evals-first**:
 
 The retained roadmap is [`docs/aws-ai-evals-learning-plan.md`](docs/aws-ai-evals-learning-plan.md). Treat it as the planning reference for the second iteration, not permission to resurrect the removed implementation, datasets, rubrics, schemas, infrastructure, or chatbot assumptions.
 
+## Current status
+
+**Week 2 is complete.** The repo now has the local eval contract layer needed before building the chatbot specimen:
+
+- `profile.md` as the sole public-safe candidate evidence source;
+- readable JSON Schemas for eval examples, captured responses, and human labels;
+- valid and invalid schema fixtures;
+- `datasets/synthetic/recruiter-evidence-qa.jsonl` as the first recruiter-evidence synthetic dataset;
+- `scripts/validate_dataset.py` as the canonical schema/dataset validator;
+- `scripts/public_safety_scan.py` as the public-artifact safety scanner;
+- a small browser workbench for reviewing/editing the synthetic dataset;
+- GitHub Actions CI running validation, safety scanning, tests, and whitespace checks.
+
+Next up is Week 3: build the minimal profile-only chatbot specimen and trace contract without adding deployment, RAG, judge rubrics, Bedrock jobs, or UI polish.
+
 ## 12-week schedule
 
-| Week | Focus | Outcome |
-| --- | --- | --- |
-| 1 | Eval/product contract, security envelope, repo contracts | Candidate-agent boundaries, public/private source rules, evidence taxonomy, refusal rules, run manifest, and security envelope. |
-| 2 | Dataset contracts and schema validators | Schemas, synthetic prompts, citation/evidence labels, invalid fixtures, and validation tooling. |
-| 3 | Minimal specimen and trace contract | Small local/stubbed chatbot specimen with normalized traces, citations, evidence strength, refusals, and structured errors. |
-| 4 | Local harness and deterministic gates | Local eval run plus deterministic checks for schema validity, citations, source allowlists, refusals, and no-private-source rules. |
-| 5 | Human labeling workflow | Browser/headless labeling workflow and pass/partial/fail labels before trusting judge scores. |
-| 6 | Judge rubrics and calibration | Versioned rubrics, judge-vs-human agreement, variance, disagreement analysis, confusion matrix, and kappa. |
-| 7 | Bedrock model evals | Bedrock model-eval/BYOI jobs after local contracts and labels are solid; managed reports treated as evidence, not the whole harness. |
-| 8 | Bedrock RAG evals | Separate retrieval quality from answer quality; validate corpus support, citations, unsupported behavior, and distractors. |
-| 9 | Observability and lab trace capture | Bedrock invocation logging for lab/eval runs, app-level traces, S3 layout, retention, and public-safe normalized exports. |
-| 10 | Inspect AI and custom programmatic evals | Inspect tasks or equivalent custom runners for checks that do not fit managed Bedrock evals. |
-| 11 | Orchestration, CI, and regression gates | Local workflow simulation, manifests, run-result schema, CI checks, cost controls, and calibrated regression thresholds. |
-| 12 | Capstone reference architecture | Public-safe package with schemas, datasets, validators, scorers, Bedrock/RAG/Inspect adapters, runbooks, reports, and limitations. |
+| Status | Week | Focus | Outcome |
+| --- | --- | --- | --- |
+| ✅ Complete — foundation poured | 1 | Eval/product contract and repo boundaries | Simplified profile-only contract, architecture notes, public/private source rules, and explicit no-production-AI overclaim boundary. |
+| ✅ Complete — contracts locked | 2 | Dataset contracts and schema validators | `profile.md`, schemas, fixtures, first synthetic dataset, browser workbench, validator, public-safety scanner, and CI. The eval runway now has guardrails instead of vibes in a trench coat. |
+| 🔜 Next — specimen time | 3 | Minimal profile-only specimen and trace contract | Small local/stubbed chatbot specimen with normalized traces, refusal behavior, structured errors, and no deployment/RAG/judge-rubric sprawl. |
+| ⏳ Queued | 4 | Local harness and deterministic gates | Local eval run plus deterministic checks for schema validity, source boundaries, refusals, and no-private-source rules. |
+| ⏳ Queued | 5 | Human labeling workflow | Browser/headless labeling workflow and pass/fail labels before trusting judge scores. |
+| ⏳ Queued | 6 | Judge rubrics and calibration | Versioned rubrics, judge-vs-human agreement, variance, disagreement analysis, confusion matrix, and kappa. |
+| ⏳ Queued | 7 | Bedrock model evals | Bedrock model-eval/BYOI jobs after local contracts and labels are solid; managed reports treated as evidence, not the whole harness. |
+| ⏳ Queued | 8 | Bedrock RAG evals | Separate retrieval quality from answer quality; validate corpus support, citations, unsupported behavior, and distractors. |
+| ⏳ Queued | 9 | Observability and lab trace capture | Bedrock invocation logging for lab/eval runs, app-level traces, S3 layout, retention, and public-safe normalized exports. |
+| ⏳ Queued | 10 | Inspect AI and custom programmatic evals | Inspect tasks or equivalent custom runners for checks that do not fit managed Bedrock evals. |
+| ⏳ Queued | 11 | Orchestration, CI, and regression gates | Local workflow simulation, manifests, run-result schema, CI checks, cost controls, and calibrated regression thresholds. |
+| ⏳ Queued | 12 | Capstone reference architecture | Public-safe package with schemas, datasets, validators, scorers, Bedrock/RAG/Inspect adapters, runbooks, reports, and limitations. |
 
 ## Guardrails
 
