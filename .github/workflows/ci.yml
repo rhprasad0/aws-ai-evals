@@ -32,6 +32,7 @@ jobs:
           python tests/test_schema_fixtures.py
           python tests/test_validate_dataset.py
           python tests/test_eval_harness.py
+          python tests/test_label_workbench.py
           python tests/test_public_safety_scan.py
           python tests/test_profile_specimen.py
           python tests/test_run_profile_specimen.py
