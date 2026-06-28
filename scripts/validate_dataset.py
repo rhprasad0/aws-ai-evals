@@ -108,6 +108,13 @@ def schema_path(parts: Any) -> str:
     return "/" + "/".join(str(part) for part in parts)
 
 
+def display_path(path: Path, root: Path) -> Path:
+    try:
+        return path.relative_to(root)
+    except ValueError:
+        return path
+
+
 def schema_errors(path: Path, validator: Draft202012Validator, value: Any, line: int | None = None) -> list[ValidationFailure]:
     failures: list[ValidationFailure] = []
     for error in sorted(validator.iter_errors(value), key=lambda item: (list(item.path), list(item.schema_path))):
@@ -242,12 +249,12 @@ def main(argv: list[str] | None = None) -> int:
             if args.json:
                 failures.extend(validate_json_file(target, validator))
                 if not failures:
-                    messages.append(f"OK: {target.relative_to(root)} validated against {schema_name}")
+                    messages.append(f"OK: {display_path(target, root)} validated against {schema_name}")
             else:
                 row_count, jsonl_failures = validate_jsonl_file(target, validator)
                 failures.extend(jsonl_failures)
                 if not jsonl_failures:
-                    messages.append(f"OK: {row_count} rows validated in {target.relative_to(root)}")
+                    messages.append(f"OK: {row_count} rows validated in {display_path(target, root)}")
     else:
         messages, failures = validate_repo(root)
 

@@ -82,6 +82,11 @@ class ValidateDatasetTests(unittest.TestCase):
 
             self.assertTrue(any("duplicate exampleId" in failure.message for failure in failures))
 
+    def test_display_path_accepts_files_outside_repo_root(self) -> None:
+        outside = Path("/tmp/example.json")
+
+        self.assertEqual(outside, validate_dataset.display_path(outside, ROOT))
+
 
 if __name__ == "__main__":
     unittest.main()
