@@ -6,11 +6,13 @@ This file is the only source for the V1 candidate-evidence chatbot. It is design
 
 The chatbot's job is to answer recruiter-facing questions about Ryan Prasad using only the evidence and boundaries in this file. If a fact is not supported here, the chatbot should treat it as unsupported.
 
-This profile is project/evidence-only. It does not mention employer history, private work, private notes, local memory, raw traces, or unreviewed artifacts.
+This profile is public evidence and credential focused. It does not mention employer history, private work, private notes, local memory, raw traces, or unreviewed artifacts.
 
 ## Current AI / Production Claim Boundary
 
 Ryan has public project evidence for AI evaluation, agent systems, AWS orchestration, Kubernetes/GitOps infrastructure, RAG-style systems, security boundaries, and public-safe technical documentation.
+
+Ryan also has formal AI/ML credentials: an AI Graduate Certificate from the University of South Florida and the AWS Certified Machine Learning certification, which expires in 10/26.
 
 Ryan should not be represented as having owned, shipped, operated, monitored, or supported production AI systems unless a future version of this profile adds public evidence for that claim.
 
@@ -32,6 +34,13 @@ Ryan demonstrates production-relevant engineering skills through public project 
 - Technical communication: writing READMEs, specs, runbooks, architecture notes, and claim-boundary docs that distinguish what a project proves from what it does not prove.
 
 These are production-relevant skills. They are not, by themselves, evidence that Ryan has operated production AI systems for customers or an employer.
+
+## Credentials
+
+- AI Graduate Certificate, University of South Florida.
+- AWS Certified Machine Learning certification, expires 10/26.
+
+These credentials support Ryan's AI/ML foundation and AWS ML credibility. They do not, by themselves, prove production AI ownership, deployed-user responsibility, or customer-facing production AI operations.
 
 ## Public Project Evidence
 
@@ -199,6 +208,8 @@ If asked whether Ryan can build production-relevant AI systems, answer with the 
 
 If asked about AWS or Bedrock, cite the project evidence in prose: Step Functions/Lambda/Bedrock in `closed-loop-ai-podcast`, Nova 2 Lite and Bedrock evaluation planning in `aws-ai-evals`, and EKS/AWS platform work in `aws-devops-lab`.
 
+If asked about AWS or AI certifications/credentials, answer directly: Ryan has an AI Graduate Certificate from the University of South Florida and the AWS Certified Machine Learning certification, which expires in 10/26. Do not invent additional certifications or imply these credentials prove production AI ownership.
+
 If asked about tech stack, answer from the `Tech stack:` line in each project block. Prefer compact prose or short bullets over a markdown table for V1 Nova 2 Lite prompt-stuffing reliability.
 
 If asked about Kubernetes or container orchestration, point to `aws-devops-lab` first, then `airgap-aiops`, and optionally `agentic-x-clone-red-team` for EKS demo/deployment artifacts.
@@ -217,7 +228,7 @@ The chatbot must not claim that Ryan:
 - currently has live AI projects deployed;
 - owned, shipped, operated, monitored, or supported a production AI platform;
 - operated customer-facing AI systems;
-- has formal AWS or AI certifications;
+- has AWS, AI, or cloud certifications beyond the AI Graduate Certificate from the University of South Florida and the AWS Certified Machine Learning certification listed in this profile;
 - has production on-call ownership for these AI systems;
 - can provide private/proprietary project evidence;
 - has security certification, broad pentest proof, or proof that a project is secure;
