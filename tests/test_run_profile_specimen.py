@@ -19,6 +19,29 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class RunProfileSpecimenTests(unittest.TestCase):
+    class FakeBedrockClient:
+        def __init__(self) -> None:
+            self.calls = []
+
+        def converse(self, **kwargs):
+            self.calls.append(kwargs)
+            return {
+                "output": {
+                    "message": {
+                        "content": [
+                            {
+                                "text": json.dumps(
+                                    {
+                                        "answer": "profile.md does not support that production AI claim.",
+                                        "responseKind": "not_supported",
+                                    }
+                                )
+                            }
+                        ]
+                    }
+                }
+            }
+
     def test_select_examples_supports_limit_example_id_and_production_probe_filters(self) -> None:
         rows = [
             {"exampleId": "a", "productionAiProbe": True},
@@ -60,6 +83,37 @@ class RunProfileSpecimenTests(unittest.TestCase):
             self.assertEqual("not_supported", parsed[0]["response"]["responseKind"])
             self.assertEqual("refusal", parsed[1]["response"]["responseKind"])
             self.assertNotIn("raw_response", json.dumps(parsed))
+
+    def test_bedrock_mode_normalizes_response_without_storing_provider_envelope(self) -> None:
+        with TemporaryDirectory() as tmp:
+            output = Path(tmp) / "captured.jsonl"
+            client = self.FakeBedrockClient()
+            records = run_profile_specimen.run_capture(
+                root=ROOT,
+                dataset_path=ROOT / "datasets/synthetic/recruiter-evidence-qa.jsonl",
+                profile_path=ROOT / "profile.md",
+                output_path=output,
+                run_id="local-bedrock-test",
+                mode="bedrock",
+                model_id="us.amazon.nova-2-lite-v1:0",
+                example_ids=["prod-ai-direct-001"],
+                captured_at=datetime(2026, 6, 28, 17, 0, tzinfo=UTC),
+                bedrock_client=client,
+            )
+
+            payload = output.read_text(encoding="utf-8")
+
+            self.assertEqual(1, len(records))
+            self.assertEqual("us.amazon.nova-2-lite-v1:0", records[0]["modelId"])
+            self.assertEqual("not_supported", records[0]["response"]["responseKind"])
+            self.assertEqual(1, len(client.calls))
+            self.assertIn("messages", client.calls[0])
+            self.assertNotIn("output", payload)
+            self.assertNotIn("message", records[0])
+
+    def test_extract_converse_text_requires_text_blocks(self) -> None:
+        with self.assertRaisesRegex(ValueError, "text content"):
+            run_profile_specimen.extract_converse_text({"output": {"message": {"content": []}}})
 
     def test_cli_writes_limited_production_probe_output(self) -> None:
         with TemporaryDirectory() as tmp:
