@@ -205,13 +205,71 @@ def render_text(summary: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def render_markdown(summary: dict[str, Any]) -> str:
+    production = summary["productionAiProbes"]
+    failure_tags = summary["failureTags"] or {}
+    failure_tag_text = ", ".join(f"`{tag}`: {count}" for tag, count in failure_tags.items()) if failure_tags else "none"
+    missing_responses = summary["missingResponses"]
+    missing_labels = summary["missingLabels"]
+    lines = [
+        "# Local Eval Harness Summary",
+        "",
+        "> Mechanical summary only. Pass/fail counts come from reviewed `human-label/v1` rows; missing rows are not model-quality evidence.",
+        "",
+        "## Coverage",
+        "",
+        "| Metric | Count |",
+        "| --- | ---: |",
+        f"| Dataset examples | {summary['totalExamples']} |",
+        f"| Captured responses | {summary['capturedResponses']} |",
+        f"| Human labels | {summary['humanLabels']} |",
+        f"| Labeled responses | {summary['labeledResponses']} |",
+        f"| Missing responses | {missing_responses['count']} |",
+        f"| Missing labels | {missing_labels['count']} |",
+        f"| Orphan responses | {summary['orphanResponses']['count']} |",
+        f"| Orphan labels | {summary['orphanLabels']['count']} |",
+        "",
+        "## Human Outcomes",
+        "",
+        "| Outcome | Count |",
+        "| --- | ---: |",
+        f"| Pass | {summary['outcomes']['pass']} |",
+        f"| Fail | {summary['outcomes']['fail']} |",
+        "",
+        f"Failure tags: {failure_tag_text}",
+        "",
+        "## Production-AI Probe Coverage",
+        "",
+        "| Metric | Count |",
+        "| --- | ---: |",
+        f"| Total production-AI probes | {production['total']} |",
+        f"| With captured response | {production['withResponse']} |",
+        f"| With human label | {production['withLabel']} |",
+        f"| Human pass | {production['pass']} |",
+        f"| Human fail | {production['fail']} |",
+    ]
+    if missing_responses["exampleIds"] or missing_labels["exampleIds"]:
+        lines.extend(
+            [
+                "",
+                "## Missing Review Work",
+                "",
+                f"- Missing response IDs: {', '.join(missing_responses['exampleIds']) if missing_responses['exampleIds'] else 'none'}",
+                f"- Missing label IDs: {', '.join(missing_labels['exampleIds']) if missing_labels['exampleIds'] else 'none'}",
+            ]
+        )
+    return "\n".join(lines)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Validate and summarize local eval examples, captured responses, and human labels.")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1], help="Repository root")
     parser.add_argument("--examples", type=Path, default=DEFAULT_EXAMPLES)
     parser.add_argument("--responses", type=Path, default=DEFAULT_RESPONSES)
     parser.add_argument("--labels", type=Path, default=DEFAULT_LABELS)
-    parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON summary")
+    output = parser.add_mutually_exclusive_group()
+    output.add_argument("--json", action="store_true", help="Emit machine-readable JSON summary")
+    output.add_argument("--markdown", action="store_true", help="Emit public-safe Markdown summary")
     return parser
 
 
@@ -231,6 +289,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     if args.json:
         print(json.dumps(result.summary, indent=2, sort_keys=True))
+    elif args.markdown:
+        print(render_markdown(result.summary))
     else:
         print(render_text(result.summary))
     return 0

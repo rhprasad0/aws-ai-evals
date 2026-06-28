@@ -99,6 +99,36 @@ class EvalHarnessTests(unittest.TestCase):
         self.assertEqual(3, summary["humanLabels"])
         self.assertEqual(3, summary["labeledResponses"])
 
+    def test_markdown_summary_keeps_quality_caveat_and_tables(self) -> None:
+        result = eval_harness.run_harness(
+            ROOT,
+            ROOT / eval_harness.DEFAULT_EXAMPLES,
+            ROOT / eval_harness.DEFAULT_RESPONSES,
+            ROOT / eval_harness.DEFAULT_LABELS,
+        )
+
+        markdown = eval_harness.render_markdown(result.summary)
+
+        self.assertIn("# Local Eval Harness Summary", markdown)
+        self.assertIn("Mechanical summary only", markdown)
+        self.assertIn("| Dataset examples | 18 |", markdown)
+        self.assertIn("| Pass | 3 |", markdown)
+        self.assertIn("| Human fail | 0 |", markdown)
+        self.assertIn("## Missing Review Work", markdown)
+        self.assertNotIn("model passed", markdown.lower())
+
+    def test_cli_markdown_summary(self) -> None:
+        completed = subprocess.run(
+            [sys.executable, "scripts/eval_harness.py", "--markdown"],
+            cwd=ROOT,
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+        )
+
+        self.assertIn("# Local Eval Harness Summary", completed.stdout)
+        self.assertIn("| Human labels | 3 |", completed.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

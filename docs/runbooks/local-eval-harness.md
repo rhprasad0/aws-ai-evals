@@ -51,6 +51,14 @@ python3 scripts/eval_harness.py --json
 
 Use this for tests or future report generation.
 
+## Markdown output
+
+```bash
+python3 scripts/eval_harness.py --markdown
+```
+
+This emits a public-safe Markdown summary with coverage counts, human pass/fail counts, production-AI probe coverage, and missing review work. It includes the caveat that pass/fail counts come from reviewed `human-label/v1` rows only; it is not a model-quality claim.
+
 ## Custom files
 
 ```bash
@@ -65,6 +73,7 @@ python3 scripts/eval_harness.py \
 ```bash
 python3 scripts/eval_harness.py
 python3 scripts/eval_harness.py --json
+python3 scripts/eval_harness.py --markdown
 python3 tests/test_eval_harness.py
 python3 scripts/validate_dataset.py --jsonl human-label tests/fixtures/human-labels/live-smoke-reviewed.jsonl
 ```
