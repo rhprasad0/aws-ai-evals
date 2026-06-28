@@ -56,6 +56,33 @@ python3 scripts/profile_specimen.py \
 
 This prints a schema-shaped captured-response JSON object using `modelId: stub-local`. It is a fixture/debug path only; it does not claim model behavior.
 
+## Run a local stub capture
+
+Use the runner to iterate over selected dataset rows and write captured-response JSONL under ignored `build/` output:
+
+```bash
+python3 scripts/run_profile_specimen.py \
+  --production-probes \
+  --limit 3
+```
+
+Expected success shape:
+
+```text
+OK: wrote 3 captured response(s) to build/captured-responses/local-stub-YYYYMMDDHHMMSS.jsonl
+OK: validated against schemas/captured-response.schema.json
+```
+
+Useful targeting options:
+
+```bash
+python3 scripts/run_profile_specimen.py --example-id prod-ai-direct-001
+python3 scripts/run_profile_specimen.py --example-id prod-ai-direct-001 --example-id off-topic-canary-001
+python3 scripts/run_profile_specimen.py --production-probes --limit 2 --output /tmp/profile-specimen.jsonl
+```
+
+The runner is still stubbed. It proves row selection, captured-response wrapping, JSONL writing, and schema validation before live model integration.
+
 ## Validate the interface
 
 ```bash
@@ -72,10 +99,11 @@ python3 tests/test_schema_fixtures.py
 python3 tests/test_validate_dataset.py
 python3 tests/test_public_safety_scan.py
 python3 tests/test_profile_specimen.py
+python3 tests/test_run_profile_specimen.py
 python3 tests/test_dataset_workbench.py
 git diff --check
 ```
 
 ## Next implementation slice
 
-The next Week 3 slice should add a local runner that iterates over a small dataset slice, calls either this stub path or a model adapter, writes captured-response JSONL, and validates the output against `schemas/captured-response.schema.json`.
+The next Week 3 slice should add a model adapter behind this runner. Keep the same prompt wrapper and captured-response schema, save only normalized public-safe answers, and do not commit raw provider envelopes or traces.
