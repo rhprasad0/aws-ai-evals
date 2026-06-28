@@ -17,7 +17,7 @@ The retained roadmap is [`docs/aws-ai-evals-learning-plan.md`](docs/aws-ai-evals
 
 ## Current status
 
-**Week 2 is complete.** The repo now has the local eval contract layer needed before building the chatbot specimen:
+**Week 3 is complete.** The repo now has the local eval contract layer plus a minimal profile-only specimen path that can produce reviewed, schema-valid captured responses:
 
 - `profile.md` as the sole public-safe candidate evidence source;
 - readable JSON Schemas for eval examples, captured responses, and human labels;
@@ -26,9 +26,12 @@ The retained roadmap is [`docs/aws-ai-evals-learning-plan.md`](docs/aws-ai-evals
 - `scripts/validate_dataset.py` as the canonical schema/dataset validator;
 - `scripts/public_safety_scan.py` as the public-artifact safety scanner;
 - a small browser workbench for reviewing/editing the synthetic dataset;
+- a profile-only specimen prompt/response interface;
+- a stubbed local runner plus opt-in Bedrock/Nova smoke mode;
+- reviewed captured-response fixtures for the accepted 3-row live smoke;
 - GitHub Actions CI running validation, safety scanning, tests, and whitespace checks.
 
-Next up is Week 3: build the minimal profile-only chatbot specimen and trace contract without adding deployment, RAG, judge rubrics, Bedrock jobs, or UI polish.
+Next up is Week 4: local harness and deterministic gates. The eval goblin has a specimen now; it needs a clipboard.
 
 ## 12-week schedule
 
@@ -36,8 +39,8 @@ Next up is Week 3: build the minimal profile-only chatbot specimen and trace con
 | --- | --- | --- | --- |
 | ✅ Complete — foundation poured | 1 | Eval/product contract and repo boundaries | Simplified profile-only contract, architecture notes, public/private source rules, and explicit no-production-AI overclaim boundary. |
 | ✅ Complete — contracts locked | 2 | Dataset contracts and schema validators | `profile.md`, schemas, fixtures, first synthetic dataset, browser workbench, validator, public-safety scanner, and CI. The eval runway now has guardrails instead of vibes in a trench coat. |
-| 🔜 Next — specimen time | 3 | Minimal profile-only specimen and trace contract | Small local/stubbed chatbot specimen with normalized traces, refusal behavior, structured errors, and no deployment/RAG/judge-rubric sprawl. |
-| ⏳ Queued | 4 | Local harness and deterministic gates | Local eval run plus deterministic checks for schema validity, source boundaries, refusals, and no-private-source rules. |
+| ✅ Complete — specimen captured | 3 | Minimal profile-only specimen and trace contract | Profile-only prompt seam, stub runner, opt-in Nova smoke mode, normalized captured responses, reviewed smoke fixtures, and no deployment/RAG/judge-rubric sprawl. |
+| 🔜 Next — gates and harness | 4 | Local harness and deterministic gates | Local eval run plus deterministic checks for schema validity, source boundaries, refusals, and no-private-source rules. |
 | ⏳ Queued | 5 | Human labeling workflow | Browser/headless labeling workflow and pass/fail labels before trusting judge scores. |
 | ⏳ Queued | 6 | Judge rubrics and calibration | Versioned rubrics, judge-vs-human agreement, variance, disagreement analysis, confusion matrix, and kappa. |
 | ⏳ Queued | 7 | Bedrock model evals | Bedrock model-eval/BYOI jobs after local contracts and labels are solid; managed reports treated as evidence, not the whole harness. |

@@ -36,6 +36,24 @@ class SchemaFixtureTests(unittest.TestCase):
                 self.assertEqual([], valid_errors)
                 self.assertGreater(len(invalid_errors), 0)
 
+    def test_reviewed_captured_response_jsonl_fixtures_pass(self) -> None:
+        schema = json.loads((ROOT / "schemas/captured-response.schema.json").read_text(encoding="utf-8"))
+        validator = Draft202012Validator(schema, format_checker=FormatChecker())
+        fixture_paths = sorted((ROOT / "tests/fixtures/captured-responses").glob("*.jsonl"))
+
+        self.assertGreater(len(fixture_paths), 0)
+        for fixture_path in fixture_paths:
+            with self.subTest(fixture=fixture_path.name):
+                rows = [json.loads(line) for line in fixture_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+                errors = [error for row in rows for error in validator.iter_errors(row)]
+                rendered = json.dumps(rows)
+
+                self.assertEqual([], errors)
+                self.assertGreater(len(rows), 0)
+                self.assertNotIn("ResponseMetadata", rendered)
+                self.assertNotIn("requestId", rendered)
+                self.assertNotIn("trace", rendered.lower())
+
 
 if __name__ == "__main__":
     unittest.main()

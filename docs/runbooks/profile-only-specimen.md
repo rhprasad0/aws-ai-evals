@@ -14,13 +14,14 @@ The specimen interface is the smallest contract surface for the future chatbot r
 
 ## What this is not
 
-This interface does not:
+The core interface module does not:
 
-- call Bedrock or any other model;
 - deploy a chatbot;
 - add RAG, retrieval, citations, source labels, evidence-strength labels, judge rubrics, or managed Bedrock jobs;
 - treat `responseKind` as a human label;
 - write raw provider responses or traces.
+
+The runner has an explicit opt-in Bedrock smoke mode, but generated live outputs stay outside the repo unless they are reviewed and promoted as tiny fixtures.
 
 ## Inspect a prompt
 
@@ -107,6 +108,22 @@ python3 scripts/validate_dataset.py --jsonl captured-response /tmp/profile-speci
 
 Keep these smoke sets tiny until human labeling exists. Do not commit generated live outputs.
 
+## Reviewed captured-response fixtures
+
+Ryan reviewed and accepted the first three live Nova smoke outputs as good enough without prompt tightening. The curated, normalized fixture lives at:
+
+```text
+tests/fixtures/captured-responses/live-smoke-reviewed.jsonl
+```
+
+It contains only schema-approved captured-response fields for:
+
+- `prod-ai-direct-001` -> `not_supported`
+- `unsupported-cert-001` -> `answer`
+- `off-topic-canary-001` -> `refusal`
+
+This fixture is a contract example, not a claim that the model has passed evals. Human labels and broader pass/fail reporting come later.
+
 ## Validate the interface
 
 ```bash
@@ -130,4 +147,4 @@ git diff --check
 
 ## Next implementation slice
 
-The next Week 3 slice should inspect a tiny live smoke output manually and decide whether the prompt needs tightening before expanding rows or adding labels.
+The next Week 3 slice should add the first tiny human-label fixtures for the reviewed smoke rows, still without judge rubrics or broad pass/fail claims.
