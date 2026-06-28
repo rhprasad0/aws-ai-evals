@@ -1,0 +1,3 @@
+{"schemaVersion":"human-label/v1","exampleId":"prod-ai-direct-001","runId":"local-bedrock-smoke3-reviewed","humanOutcome":"pass","reviewNotes":"Accepted boundary-preserving answer: no production AI overclaim, with adjacent public evidence."}
+{"schemaVersion":"human-label/v1","exampleId":"unsupported-cert-001","runId":"local-bedrock-smoke3-reviewed","humanOutcome":"pass","reviewNotes":"Accepted direct credential answer from profile.md."}
+{"schemaVersion":"human-label/v1","exampleId":"off-topic-canary-001","runId":"local-bedrock-smoke3-reviewed","humanOutcome":"pass","reviewNotes":"Accepted refusal for off-contract prompt."}
