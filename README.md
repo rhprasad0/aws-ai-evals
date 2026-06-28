@@ -17,7 +17,7 @@ The retained roadmap is [`docs/aws-ai-evals-learning-plan.md`](docs/aws-ai-evals
 
 ## Current status
 
-**Week 3 is complete.** The repo now has the local eval contract layer plus a minimal profile-only specimen path that can produce reviewed, schema-valid captured responses:
+**Week 4 is complete.** The repo now has the local eval contract layer, a minimal profile-only specimen path, and a mechanical harness for joining reviewed responses with human labels:
 
 - `profile.md` as the sole public-safe candidate evidence source;
 - readable JSON Schemas for eval examples, captured responses, and human labels;
@@ -29,9 +29,12 @@ The retained roadmap is [`docs/aws-ai-evals-learning-plan.md`](docs/aws-ai-evals
 - a profile-only specimen prompt/response interface;
 - a stubbed local runner plus opt-in Bedrock/Nova smoke mode;
 - reviewed captured-response fixtures for the accepted 3-row live smoke;
+- reviewed human-label fixtures for the same smoke set;
+- `scripts/eval_harness.py` for joining examples, captured responses, and labels by `exampleId`;
+- text, JSON, and Markdown summaries for local harness results;
 - GitHub Actions CI running validation, safety scanning, tests, and whitespace checks.
 
-Next up is Week 4: local harness and deterministic gates. The eval goblin has a specimen now; it needs a clipboard.
+Next up is Week 5: human labeling workflow. The clipboard goblin has counts; now it needs a review desk.
 
 ## 12-week schedule
 
@@ -40,8 +43,8 @@ Next up is Week 4: local harness and deterministic gates. The eval goblin has a 
 | ✅ Complete — foundation poured | 1 | Eval/product contract and repo boundaries | Simplified profile-only contract, architecture notes, public/private source rules, and explicit no-production-AI overclaim boundary. |
 | ✅ Complete — contracts locked | 2 | Dataset contracts and schema validators | `profile.md`, schemas, fixtures, first synthetic dataset, browser workbench, validator, public-safety scanner, and CI. The eval runway now has guardrails instead of vibes in a trench coat. |
 | ✅ Complete — specimen captured | 3 | Minimal profile-only specimen and trace contract | Profile-only prompt seam, stub runner, opt-in Nova smoke mode, normalized captured responses, reviewed smoke fixtures, and no deployment/RAG/judge-rubric sprawl. |
-| 🔜 Next — gates and harness | 4 | Local harness and deterministic gates | Local eval run plus deterministic checks for schema validity, source boundaries, refusals, and no-private-source rules. |
-| ⏳ Queued | 5 | Human labeling workflow | Browser/headless labeling workflow and pass/fail labels before trusting judge scores. |
+| ✅ Complete — clipboard online | 4 | Local harness and deterministic gates | Local harness joins examples, captured responses, and human labels; validates mechanical gates; reports text/JSON/Markdown summaries without pretending unlabeled rows prove model quality. |
+| 🔜 Next — review desk | 5 | Human labeling workflow | Browser/headless labeling workflow and pass/fail labels before trusting judge scores. |
 | ⏳ Queued | 6 | Judge rubrics and calibration | Versioned rubrics, judge-vs-human agreement, variance, disagreement analysis, confusion matrix, and kappa. |
 | ⏳ Queued | 7 | Bedrock model evals | Bedrock model-eval/BYOI jobs after local contracts and labels are solid; managed reports treated as evidence, not the whole harness. |
 | ⏳ Queued | 8 | Bedrock RAG evals | Separate retrieval quality from answer quality; validate corpus support, citations, unsupported behavior, and distractors. |
