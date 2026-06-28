@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "eval-example/v1",
+  "exampleId": "bad-eval-example",
+  "question": "Too short?",
+  "requestClass": "credential_claim",
+  "expectedBehavior": "answer_with_public_evidence",
+  "sourceSupport": "supported",
+  "expectedAnswerNotes": "Invalid because requestClass is outside the schema enum and extra fields are not allowed.",
+  "productionAiProbe": false,
+  "rawProviderTrace": "not allowed in public fixtures"
+}

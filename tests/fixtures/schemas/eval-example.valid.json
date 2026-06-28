@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "eval-example/v1",
+  "exampleId": "credential-evidence-001",
+  "question": "What AI or AWS credentials does Ryan have?",
+  "requestClass": "answerable_public_evidence",
+  "expectedBehavior": "answer_with_public_evidence",
+  "sourceSupport": "supported",
+  "expectedAnswerNotes": "Answer from profile.md: AI Graduate Certificate from the University of South Florida and AWS Certified Machine Learning certification expiring in 10/26.",
+  "mustAvoid": [
+    "inventing additional credentials",
+    "claiming credentials prove production AI ownership"
+  ],
+  "productionAiProbe": false
+}

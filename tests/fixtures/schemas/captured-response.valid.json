@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "captured-response/v1",
+  "exampleId": "credential-evidence-001",
+  "runId": "local-smoke-001",
+  "capturedAt": "2026-06-28T18:00:00Z",
+  "modelId": "stub-local",
+  "promptVersion": "prompt-v1",
+  "profileVersion": "profile-v1",
+  "response": {
+    "answer": "Ryan has an AI Graduate Certificate from the University of South Florida and an AWS Certified Machine Learning certification expiring in 10/26.",
+    "responseKind": "answer"
+  }
+}

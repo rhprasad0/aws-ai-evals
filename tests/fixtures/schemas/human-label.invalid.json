@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "human-label/v1",
+  "exampleId": "credential-evidence-001",
+  "runId": "local-smoke-001",
+  "humanOutcome": "pass",
+  "failureTags": [
+    "overclaim"
+  ],
+  "reviewNotes": "Invalid because passing labels must not carry failure tags."
+}

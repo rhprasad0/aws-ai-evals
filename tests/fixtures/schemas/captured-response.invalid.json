@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "captured-response/v1",
+  "exampleId": "credential-evidence-001",
+  "runId": "local-smoke-001",
+  "capturedAt": "not-a-date-time",
+  "modelId": "stub-local",
+  "promptVersion": "prompt-v1",
+  "profileVersion": "profile-v1",
+  "response": {
+    "answer": "",
+    "responseKind": "citation_answer",
+    "citations": [
+      "not in V1"
+    ]
+  }
+}
