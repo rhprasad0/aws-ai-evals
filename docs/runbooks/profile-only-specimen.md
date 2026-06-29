@@ -47,6 +47,8 @@ The model-facing response contract is intentionally tiny:
 {"answer":"short public-safe answer","responseKind":"answer|caveat|not_supported|refusal"}
 ```
 
+The default prompt mode is `coached`, which includes row metadata for contract smoke testing. Use `--prompt-mode blind` when inspecting or running eval-signal prompts; blind mode hides `requestClass`, `expectedBehavior`, `productionAiProbe`, and other answer-key metadata from the model.
+
 ## Emit a stub captured response
 
 ```bash
@@ -91,6 +93,7 @@ Live mode is opt-in and writes only normalized captured-response JSONL. It does 
 ```bash
 python3 scripts/run_profile_specimen.py \
   --mode bedrock \
+  --prompt-mode blind \
   --model-id us.amazon.nova-2-lite-v1:0 \
   --region us-east-1 \
   --example-id prod-ai-direct-001 \

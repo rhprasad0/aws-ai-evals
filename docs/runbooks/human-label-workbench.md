@@ -23,6 +23,28 @@ python3 scripts/validate_dataset.py \
 
 Do not commit the generated all-row response JSONL unless Ryan explicitly promotes a reviewed, public-safe fixture.
 
+### Bias check: run a blind capture before treating all-pass as signal
+
+The default `coached` prompt is useful for contract smoke tests, but it includes row behavior metadata such as `requestClass`, `expectedBehavior`, and `productionAiProbe`. If every row passes, assume the model may be reading the answer key taped to its forehead.
+
+For eval signal, rerun the same rows in blind mode so the model sees only the task instructions, delimited `profile.md`, the recruiter question, and the JSON response shape:
+
+```bash
+python3 scripts/run_profile_specimen.py \
+  --mode bedrock \
+  --prompt-mode blind \
+  --model-id us.amazon.nova-2-lite-v1:0 \
+  --region us-east-1 \
+  --run-id week5-all-rows-blind \
+  --output build/captured-responses/week5-all-rows-blind.jsonl
+
+python3 scripts/validate_dataset.py \
+  --jsonl captured-response \
+  build/captured-responses/week5-all-rows-blind.jsonl
+```
+
+Label the blind run separately and compare it with the coached run. Divergence is useful calibration signal, not a paperwork emergency.
+
 ## Check workbench inputs
 
 ```bash

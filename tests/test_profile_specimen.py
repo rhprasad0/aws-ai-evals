@@ -38,6 +38,31 @@ class ProfileSpecimenTests(unittest.TestCase):
         self.assertIn("Do not include citations", prompt)
         self.assertIn("productionAiProbe: true", prompt)
 
+    def test_blind_prompt_hides_row_metadata_answer_key(self) -> None:
+        specimen_input = profile_specimen.SpecimenInput(
+            example_id="prod-ai-direct-001",
+            question="Does Ryan have production AI experience?",
+            request_class="unsupported_or_overclaim",
+            expected_behavior="say_not_supported",
+            production_ai_probe=True,
+        )
+
+        prompt = profile_specimen.build_prompt(
+            specimen_input,
+            "# Profile\n\nOnly source content.",
+            prompt_mode="blind",
+        )
+
+        self.assertIn("Does Ryan have production AI experience?", prompt)
+        self.assertIn(profile_specimen.PROFILE_START, prompt)
+        self.assertIn('"responseKind"', prompt)
+        self.assertNotIn("Row Metadata", prompt)
+        self.assertNotIn("requestClass", prompt)
+        self.assertNotIn("expectedBehavior", prompt)
+        self.assertNotIn("productionAiProbe", prompt)
+        self.assertNotIn("say_not_supported", prompt)
+        self.assertEqual("profile-only-v1-blind", profile_specimen.prompt_version_for_mode("blind"))
+
     def test_normalize_model_response_accepts_fenced_json_and_rejects_extra_kind(self) -> None:
         response = profile_specimen.normalize_model_response(
             '```json\n{"answer":"No, profile.md does not support that claim.","responseKind":"not_supported"}\n```'
@@ -88,6 +113,25 @@ class ProfileSpecimenTests(unittest.TestCase):
         )
         self.assertIn("## Task", prompt.stdout)
         self.assertIn("Does Ryan have production AI experience?", prompt.stdout)
+
+        blind_prompt = subprocess.run(
+            [
+                sys.executable,
+                "scripts/profile_specimen.py",
+                "--example-id",
+                "prod-ai-direct-001",
+                "--prompt",
+                "--prompt-mode",
+                "blind",
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+        self.assertIn("## Task", blind_prompt.stdout)
+        self.assertNotIn("expectedBehavior", blind_prompt.stdout)
 
         stub = subprocess.run(
             [sys.executable, "scripts/profile_specimen.py", "--example-id", "off-topic-canary-001"],

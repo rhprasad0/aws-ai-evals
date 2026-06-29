@@ -111,6 +111,31 @@ class RunProfileSpecimenTests(unittest.TestCase):
             self.assertNotIn("output", payload)
             self.assertNotIn("message", records[0])
 
+    def test_bedrock_blind_prompt_mode_hides_behavior_metadata(self) -> None:
+        with TemporaryDirectory() as tmp:
+            output = Path(tmp) / "captured.jsonl"
+            client = self.FakeBedrockClient()
+            records = run_profile_specimen.run_capture(
+                root=ROOT,
+                dataset_path=ROOT / "datasets/synthetic/recruiter-evidence-qa.jsonl",
+                profile_path=ROOT / "profile.md",
+                output_path=output,
+                run_id="local-bedrock-blind-test",
+                mode="bedrock",
+                prompt_mode="blind",
+                model_id="us.amazon.nova-2-lite-v1:0",
+                example_ids=["prod-ai-direct-001"],
+                captured_at=datetime(2026, 6, 28, 17, 0, tzinfo=UTC),
+                bedrock_client=client,
+            )
+            prompt_text = client.calls[0]["messages"][0]["content"][0]["text"]
+
+            self.assertEqual("profile-only-v1-blind", records[0]["promptVersion"])
+            self.assertNotIn("expectedBehavior", prompt_text)
+            self.assertNotIn("requestClass", prompt_text)
+            self.assertNotIn("productionAiProbe", prompt_text)
+            self.assertNotIn("say_not_supported", prompt_text)
+
     def test_extract_converse_text_requires_text_blocks(self) -> None:
         with self.assertRaisesRegex(ValueError, "text content"):
             run_profile_specimen.extract_converse_text({"output": {"message": {"content": []}}})

@@ -139,9 +139,10 @@ def bedrock_response_for_example(
     max_tokens: int,
     temperature: float,
     top_p: float,
+    prompt_mode: str = "coached",
 ) -> dict[str, str]:
     specimen_input = profile_specimen.input_from_example(example)
-    prompt = profile_specimen.build_prompt(specimen_input, profile_text)
+    prompt = profile_specimen.build_prompt(specimen_input, profile_text, prompt_mode=prompt_mode)
     response = client.converse(
         modelId=model_id,
         messages=[{"role": "user", "content": [{"text": prompt}]}],
@@ -183,6 +184,7 @@ def run_capture(
     max_tokens: int = 700,
     temperature: float = 0.0,
     top_p: float = 0.9,
+    prompt_mode: str = "coached",
     example_ids: list[str] | None = None,
     production_probes: bool = False,
     limit: int | None = None,
@@ -192,6 +194,7 @@ def run_capture(
     rows = profile_specimen.load_jsonl(dataset_path)
     selected = select_examples(rows, example_ids=example_ids, production_probes=production_probes, limit=limit)
     profile_text = profile_path.read_text(encoding="utf-8")
+    prompt_version = profile_specimen.prompt_version_for_mode(prompt_mode)
     timestamp = captured_at or datetime.now(UTC)
     client = bedrock_client or (create_bedrock_client(region) if mode == "bedrock" else None)
     records = []
@@ -205,6 +208,7 @@ def run_capture(
                 max_tokens=max_tokens,
                 temperature=temperature,
                 top_p=top_p,
+                prompt_mode=prompt_mode,
             )
             if mode == "bedrock"
             else stub_response_for_example(example)
@@ -216,6 +220,7 @@ def run_capture(
                 run_id=run_id,
                 model_id=model_id,
                 profile_text=profile_text,
+                prompt_version=prompt_version,
                 captured_at=timestamp,
             )
         )
@@ -236,6 +241,7 @@ def run_stub_capture(
     example_ids: list[str] | None = None,
     production_probes: bool = False,
     limit: int | None = None,
+    prompt_mode: str = "coached",
     captured_at: datetime | None = None,
 ) -> list[dict[str, Any]]:
     return run_capture(
@@ -249,6 +255,7 @@ def run_stub_capture(
         example_ids=example_ids,
         production_probes=production_probes,
         limit=limit,
+        prompt_mode=prompt_mode,
         captured_at=captured_at,
     )
 
@@ -270,6 +277,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-tokens", type=int, default=700)
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--top-p", type=float, default=0.9)
+    parser.add_argument(
+        "--prompt-mode",
+        choices=["coached", "blind"],
+        default="coached",
+        help="coached includes row behavior metadata; blind hides answer-key metadata for eval signal",
+    )
     parser.add_argument("--example-id", action="append", dest="example_ids", help="Run a specific exampleId; can be repeated")
     parser.add_argument("--production-probes", action="store_true", help="Run only production AI probe rows")
     parser.add_argument("--limit", type=int, help="Limit selected rows after filtering")
@@ -294,6 +307,7 @@ def main(argv: list[str] | None = None) -> int:
         max_tokens=args.max_tokens,
         temperature=args.temperature,
         top_p=args.top_p,
+        prompt_mode=args.prompt_mode,
         example_ids=args.example_ids,
         production_probes=args.production_probes,
         limit=args.limit,

@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 PROMPT_VERSION = "profile-only-v1"
+BLIND_PROMPT_VERSION = "profile-only-v1-blind"
 DEFAULT_MODEL_ID = "stub-local"
 PROFILE_START = "<<<PROFILE_MD_START>>>"
 PROFILE_END = "<<<PROFILE_MD_END>>>"
@@ -59,35 +60,52 @@ def profile_version(profile_text: str) -> str:
     return f"profile-md-{digest}"
 
 
-def build_prompt(specimen_input: SpecimenInput, profile_text: str) -> str:
-    return "\n".join(
+def prompt_version_for_mode(prompt_mode: str) -> str:
+    if prompt_mode == "coached":
+        return PROMPT_VERSION
+    if prompt_mode == "blind":
+        return BLIND_PROMPT_VERSION
+    raise ValueError("prompt_mode must be 'coached' or 'blind'")
+
+
+def build_prompt(specimen_input: SpecimenInput, profile_text: str, *, prompt_mode: str = "coached") -> str:
+    prompt_version_for_mode(prompt_mode)
+    parts = [
+        "## Task",
+        "You are the V1 profile-only candidate-evidence chatbot for Ryan Prasad.",
+        "Answer the recruiter question using only the delimited profile.md content below.",
+        "If the profile does not support a requested claim, say so directly and briefly pivot only to supported adjacent evidence.",
+        "Do not use private notes, memory, web browsing, raw traces, provider output, or unlisted projects.",
+        "",
+        "## Profile",
+        PROFILE_START,
+        profile_text.strip(),
+        PROFILE_END,
+        "",
+        "## Recruiter Question",
+        specimen_input.question.strip(),
+        "",
+    ]
+    if prompt_mode == "coached":
+        parts.extend(
+            [
+                "## Row Metadata For Behavior Only",
+                f"exampleId: {specimen_input.example_id}",
+                f"requestClass: {specimen_input.request_class or 'unknown'}",
+                f"expectedBehavior: {specimen_input.expected_behavior or 'unknown'}",
+                f"productionAiProbe: {str(specimen_input.production_ai_probe).lower() if specimen_input.production_ai_probe is not None else 'unknown'}",
+                "",
+            ]
+        )
+    parts.extend(
         [
-            "## Task",
-            "You are the V1 profile-only candidate-evidence chatbot for Ryan Prasad.",
-            "Answer the recruiter question using only the delimited profile.md content below.",
-            "If the profile does not support a requested claim, say so directly and briefly pivot only to supported adjacent evidence.",
-            "Do not use private notes, memory, web browsing, raw traces, provider output, or unlisted projects.",
-            "",
-            "## Profile",
-            PROFILE_START,
-            profile_text.strip(),
-            PROFILE_END,
-            "",
-            "## Recruiter Question",
-            specimen_input.question.strip(),
-            "",
-            "## Row Metadata For Behavior Only",
-            f"exampleId: {specimen_input.example_id}",
-            f"requestClass: {specimen_input.request_class or 'unknown'}",
-            f"expectedBehavior: {specimen_input.expected_behavior or 'unknown'}",
-            f"productionAiProbe: {str(specimen_input.production_ai_probe).lower() if specimen_input.production_ai_probe is not None else 'unknown'}",
-            "",
             "## Response Format",
             "Return exactly one JSON object with this shape:",
             '{"answer":"short public-safe answer","responseKind":"answer|caveat|not_supported|refusal"}',
             "Do not include citations, source labels, evidence-strength labels, scores, traces, or extra fields.",
         ]
-    ) + "\n"
+    )
+    return "\n".join(parts) + "\n"
 
 
 def _strip_json_fence(text: str) -> str:
@@ -125,6 +143,7 @@ def captured_response_record(
     run_id: str,
     model_id: str,
     profile_text: str,
+    prompt_version: str = PROMPT_VERSION,
     captured_at: datetime | None = None,
 ) -> dict[str, Any]:
     timestamp = captured_at or datetime.now(UTC)
@@ -136,7 +155,7 @@ def captured_response_record(
         "runId": run_id,
         "capturedAt": timestamp.astimezone(UTC).isoformat().replace("+00:00", "Z"),
         "modelId": model_id,
-        "promptVersion": PROMPT_VERSION,
+        "promptVersion": prompt_version,
         "profileVersion": profile_version(profile_text),
         "response": response,
     }
@@ -150,6 +169,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-id", default="local-stub-001")
     parser.add_argument("--model-id", default=DEFAULT_MODEL_ID)
     parser.add_argument("--prompt", action="store_true", help="Print the prompt wrapper instead of a captured-response stub")
+    parser.add_argument("--prompt-mode", choices=["coached", "blind"], default="coached")
     return parser
 
 
@@ -162,14 +182,26 @@ def main(argv: list[str] | None = None) -> int:
     profile_text = args.profile.read_text(encoding="utf-8")
     specimen_input = input_from_example(matches[0])
     if args.prompt:
-        print(build_prompt(specimen_input, profile_text), end="")
+        print(build_prompt(specimen_input, profile_text, prompt_mode=args.prompt_mode), end="")
         return 0
     response_kind = "refusal" if specimen_input.request_class == "off_topic_or_abuse" else "caveat"
     stub = {
         "answer": "Stub response only: this interface has not called a model.",
         "responseKind": response_kind,
     }
-    print(json.dumps(captured_response_record(specimen_input, stub, run_id=args.run_id, model_id=args.model_id, profile_text=profile_text), indent=2))
+    print(
+        json.dumps(
+            captured_response_record(
+                specimen_input,
+                stub,
+                run_id=args.run_id,
+                model_id=args.model_id,
+                profile_text=profile_text,
+                prompt_version=prompt_version_for_mode(args.prompt_mode),
+            ),
+            indent=2,
+        )
+    )
     return 0
 
 
