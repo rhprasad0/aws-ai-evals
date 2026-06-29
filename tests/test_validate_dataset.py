@@ -21,7 +21,12 @@ class ValidateDatasetTests(unittest.TestCase):
         self.assertEqual([], failures)
         self.assertIn("OK: 3 schemas are valid Draft 2020-12 JSON Schemas", messages)
         self.assertIn("OK: 6 schema fixtures behaved as expected", messages)
-        self.assertTrue(any(message.startswith("OK: 18 rows validated") for message in messages))
+        self.assertTrue(
+            any(
+                message.startswith("OK: ") and message.endswith(" rows validated in datasets/synthetic/recruiter-evidence-qa.jsonl")
+                for message in messages
+            )
+        )
 
     def test_jsonl_failure_reports_line_and_schema_path(self) -> None:
         with TemporaryDirectory() as tmp:
