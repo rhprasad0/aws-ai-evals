@@ -12,6 +12,7 @@ SCHEMA_FIXTURES = [
     ("eval-example", ROOT / "schemas/eval-example.schema.json"),
     ("captured-response", ROOT / "schemas/captured-response.schema.json"),
     ("human-label", ROOT / "schemas/human-label.schema.json"),
+    ("judge-output", ROOT / "schemas/judge-output.schema.json"),
 ]
 
 

@@ -56,6 +56,11 @@ SCHEMA_SPECS = {
         "valid_fixture": Path("tests/fixtures/schemas/human-label.valid.json"),
         "invalid_fixture": Path("tests/fixtures/schemas/human-label.invalid.json"),
     },
+    "judge-output": {
+        "schema": Path("schemas/judge-output.schema.json"),
+        "valid_fixture": Path("tests/fixtures/schemas/judge-output.valid.json"),
+        "invalid_fixture": Path("tests/fixtures/schemas/judge-output.invalid.json"),
+    },
 }
 
 DEFAULT_DATASETS = [

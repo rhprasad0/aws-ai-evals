@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "judge-output/v1",
+  "exampleId": "bad",
+  "responseRunId": "week5-hard-prompts-blind-full",
+  "judgeRunId": "week6-claude-sonnet-46-judge-smoke",
+  "judgedAt": "not-a-date-time",
+  "judgeModelId": "us.anthropic.claude-sonnet-4-6",
+  "rubricId": "binary-profile-contract-v1",
+  "predictedOutcome": "maybe",
+  "failureTags": ["off_contract"],
+  "rationale": "Invalid because predictedOutcome is not binary and timestamp is malformed."
+}

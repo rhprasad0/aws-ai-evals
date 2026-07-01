@@ -17,7 +17,7 @@ The retained roadmap is [`docs/aws-ai-evals-learning-plan.md`](docs/aws-ai-evals
 
 ## Current status
 
-**Week 4 is complete.** The repo now has the local eval contract layer, a minimal profile-only specimen path, and a mechanical harness for joining reviewed responses with human labels:
+**Week 5 is complete.** The repo now has the local eval contract layer, a minimal profile-only specimen path, blind response capture, and a browser/headless workflow for human pass/fail labels:
 
 - `profile.md` as the sole public-safe candidate evidence source;
 - readable JSON Schemas for eval examples, captured responses, and human labels;
@@ -28,13 +28,18 @@ The retained roadmap is [`docs/aws-ai-evals-learning-plan.md`](docs/aws-ai-evals
 - a small browser workbench for reviewing/editing the synthetic dataset;
 - a profile-only specimen prompt/response interface;
 - a stubbed local runner plus opt-in Bedrock/Nova smoke mode;
+- blind prompt mode so eval metadata and expected-answer notes are not taped to the model's forehead;
+- harder recruiter, prompt-injection, and hallucination-bait rows for stress-testing the profile-only boundary;
 - reviewed captured-response fixtures for the accepted 3-row live smoke;
-- reviewed human-label fixtures for the same smoke set;
+- reviewed human-label fixtures for the accepted 3-row live smoke;
+- a reviewed 48-row blind label fixture with 45 human passes, 3 human fails, and all 3 failures tagged `off_contract`;
 - `scripts/eval_harness.py` for joining examples, captured responses, and labels by `exampleId`;
 - text, JSON, and Markdown summaries for local harness results;
+- `scripts/label_workbench.py` for reviewing captured responses, saving draft labels, and exporting schema-valid complete label sets;
+- `scripts/run_judge_smoke.py` plus `schemas/judge-output.schema.json` for the first binary judge-calibration smoke against human labels;
 - GitHub Actions CI running validation, safety scanning, tests, and whitespace checks.
 
-Next up is Week 5: human labeling workflow. The clipboard goblin has counts; now it needs a review desk.
+Week 6 is now underway: Claude Sonnet 4.6 via the US Bedrock inference profile has produced the first binary judge smoke against the 48 reviewed labels. The first run agreed with Ryan on 47/48 rows, with one false fail and zero false passes; that is a calibration receipt, not a regression gate yet.
 
 ## 12-week schedule
 
@@ -44,8 +49,8 @@ Next up is Week 5: human labeling workflow. The clipboard goblin has counts; now
 | ✅ Complete — contracts locked | 2 | Dataset contracts and schema validators | `profile.md`, schemas, fixtures, first synthetic dataset, browser workbench, validator, public-safety scanner, and CI. The eval runway now has guardrails instead of vibes in a trench coat. |
 | ✅ Complete — specimen captured | 3 | Minimal profile-only specimen and trace contract | Profile-only prompt seam, stub runner, opt-in Nova smoke mode, normalized captured responses, reviewed smoke fixtures, and no deployment/RAG/judge-rubric sprawl. |
 | ✅ Complete — clipboard online | 4 | Local harness and deterministic gates | Local harness joins examples, captured responses, and human labels; validates mechanical gates; reports text/JSON/Markdown summaries without pretending unlabeled rows prove model quality. |
-| 🔜 Next — review desk | 5 | Human labeling workflow | Browser/headless labeling workflow and pass/fail labels before trusting judge scores. |
-| ⏳ Queued | 6 | Judge rubrics and calibration | Versioned rubrics, judge-vs-human agreement, variance, disagreement analysis, confusion matrix, and kappa. |
+| ✅ Complete — review desk | 5 | Human labeling workflow | Browser/headless labeling workflow, blind captures, harder stress prompts, and a reviewed 48-row human-label fixture: 45 pass, 3 fail, all `off_contract`. |
+| 🧪 In progress — tiny robot grader | 6 | Binary judge calibration | Claude Sonnet 4.6 predicts pass/fail against the human labels, reports agreement/false passes/false fails/tag drift, and keeps generated judge output separate from source-of-truth labels. |
 | ⏳ Queued | 7 | Bedrock model evals | Bedrock model-eval/BYOI jobs after local contracts and labels are solid; managed reports treated as evidence, not the whole harness. |
 | ⏳ Queued | 8 | Bedrock RAG evals | Separate retrieval quality from answer quality; validate corpus support, citations, unsupported behavior, and distractors. |
 | ⏳ Queued | 9 | Observability and lab trace capture | Bedrock invocation logging for lab/eval runs, app-level traces, S3 layout, retention, and public-safe normalized exports. |

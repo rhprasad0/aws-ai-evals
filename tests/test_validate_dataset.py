@@ -19,8 +19,8 @@ class ValidateDatasetTests(unittest.TestCase):
         messages, failures = validate_dataset.validate_repo(ROOT)
 
         self.assertEqual([], failures)
-        self.assertIn("OK: 3 schemas are valid Draft 2020-12 JSON Schemas", messages)
-        self.assertIn("OK: 6 schema fixtures behaved as expected", messages)
+        self.assertIn("OK: 4 schemas are valid Draft 2020-12 JSON Schemas", messages)
+        self.assertIn("OK: 8 schema fixtures behaved as expected", messages)
         self.assertTrue(
             any(
                 message.startswith("OK: ") and message.endswith(" rows validated in datasets/synthetic/recruiter-evidence-qa.jsonl")

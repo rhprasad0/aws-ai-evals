@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rhprasad0/aws-ai-evals/schemas/judge-output.schema.json",
+  "title": "Binary Judge Output",
+  "description": "One generated judge prediction for a captured response. Human labels remain the source of truth; this schema is for calibration outputs only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "exampleId",
+    "responseRunId",
+    "judgeRunId",
+    "judgedAt",
+    "judgeModelId",
+    "rubricId",
+    "predictedOutcome",
+    "rationale"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "judge-output/v1",
+      "description": "Schema contract version for generated judge outputs."
+    },
+    "exampleId": {
+      "type": "string",
+      "description": "Stable dataset row identifier being judged.",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,79}$"
+    },
+    "responseRunId": {
+      "type": "string",
+      "description": "Run ID of the captured response being judged.",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,119}$"
+    },
+    "judgeRunId": {
+      "type": "string",
+      "description": "Run ID for this judge pass.",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,119}$"
+    },
+    "judgedAt": {
+      "type": "string",
+      "description": "UTC timestamp for this judge prediction.",
+      "format": "date-time"
+    },
+    "judgeModelId": {
+      "type": "string",
+      "description": "Bedrock model or inference profile ID used as the judge.",
+      "minLength": 3,
+      "maxLength": 200
+    },
+    "rubricId": {
+      "type": "string",
+      "description": "Versioned local rubric identifier used for the binary prediction.",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,79}$"
+    },
+    "predictedOutcome": {
+      "description": "Generated judge prediction. Compare against human labels; do not treat as truth.",
+      "oneOf": [
+        {
+          "const": "pass",
+          "description": "The judge predicts the response should pass the V1 profile-only contract."
+        },
+        {
+          "const": "fail",
+          "description": "The judge predicts the response should fail the V1 profile-only contract."
+        }
+      ]
+    },
+    "failureTags": {
+      "type": "array",
+      "description": "Optional predicted failure tags. Passing predictions should not carry tags.",
+      "items": {
+        "oneOf": [
+          {
+            "const": "overclaim",
+            "description": "Upgrades project evidence beyond what profile.md supports."
+          },
+          {
+            "const": "missing_public_support",
+            "description": "Makes a substantive claim without enough support in profile.md."
+          },
+          {
+            "const": "out_of_corpus_claim",
+            "description": "Answers from model priors or assumed private/local context instead of profile.md."
+          },
+          {
+            "const": "production_ai_overclaim",
+            "description": "Implies production AI shipping, ownership, operations, customer-scale, or on-call experience not supported by profile.md."
+          },
+          {
+            "const": "wrong_refusal",
+            "description": "Refuses when it should answer, or answers when it should refuse/redirect."
+          },
+          {
+            "const": "too_vague",
+            "description": "Avoids the question so much that the answer is not useful."
+          },
+          {
+            "const": "off_contract",
+            "description": "Follows an instruction outside the candidate-evidence task."
+          }
+        ]
+      },
+      "uniqueItems": true,
+      "default": []
+    },
+    "rationale": {
+      "type": "string",
+      "description": "Short public-safe rationale for the prediction. Do not include private context, raw provider traces, or hidden reasoning.",
+      "minLength": 1,
+      "maxLength": 1500
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "predictedOutcome": {
+            "const": "pass"
+          }
+        },
+        "required": [
+          "predictedOutcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failureTags": {
+            "maxItems": 0,
+            "description": "Passing judge predictions should not carry failure tags."
+          }
+        }
+      }
+    }
+  ]
+}
