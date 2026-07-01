@@ -25,6 +25,8 @@ def write_jsonl(path: Path, rows: list[dict]) -> None:
 
 class EvalHarnessTests(unittest.TestCase):
     def test_default_reviewed_fixture_summary_is_mechanical(self) -> None:
+        total_examples = len(load_jsonl(ROOT / eval_harness.DEFAULT_EXAMPLES))
+        reviewed_labels = len(load_jsonl(ROOT / eval_harness.DEFAULT_LABELS))
         result = eval_harness.run_harness(
             ROOT,
             ROOT / eval_harness.DEFAULT_EXAMPLES,
@@ -33,13 +35,13 @@ class EvalHarnessTests(unittest.TestCase):
         )
 
         self.assertEqual([], result.failures)
-        self.assertEqual(18, result.summary["totalExamples"])
+        self.assertEqual(total_examples, result.summary["totalExamples"])
         self.assertEqual(3, result.summary["capturedResponses"])
         self.assertEqual(3, result.summary["humanLabels"])
         self.assertEqual(3, result.summary["labeledResponses"])
         self.assertEqual({"pass": 3, "fail": 0}, result.summary["outcomes"])
-        self.assertEqual(15, result.summary["missingResponses"]["count"])
-        self.assertEqual(15, result.summary["missingLabels"]["count"])
+        self.assertEqual(total_examples - reviewed_labels, result.summary["missingResponses"]["count"])
+        self.assertEqual(total_examples - reviewed_labels, result.summary["missingLabels"]["count"])
         self.assertEqual(0, result.summary["orphanResponses"]["count"])
         self.assertEqual(0, result.summary["orphanLabels"]["count"])
         self.assertGreaterEqual(result.summary["productionAiProbes"]["total"], 1)
@@ -100,6 +102,7 @@ class EvalHarnessTests(unittest.TestCase):
         self.assertEqual(3, summary["labeledResponses"])
 
     def test_markdown_summary_keeps_quality_caveat_and_tables(self) -> None:
+        total_examples = len(load_jsonl(ROOT / eval_harness.DEFAULT_EXAMPLES))
         result = eval_harness.run_harness(
             ROOT,
             ROOT / eval_harness.DEFAULT_EXAMPLES,
@@ -111,7 +114,7 @@ class EvalHarnessTests(unittest.TestCase):
 
         self.assertIn("# Local Eval Harness Summary", markdown)
         self.assertIn("Mechanical summary only", markdown)
-        self.assertIn("| Dataset examples | 18 |", markdown)
+        self.assertIn(f"| Dataset examples | {total_examples} |", markdown)
         self.assertIn("| Pass | 3 |", markdown)
         self.assertIn("| Human fail | 0 |", markdown)
         self.assertIn("## Missing Review Work", markdown)
